@@ -57,27 +57,63 @@ Both paths use the same pinned **14.6 GB Gemma checkpoint**. [Verify or obtain t
 
 ## Install the Windows alpha from release files
 
-You’ll need Windows x64, an AVX2/FMA-capable CPU, Python 3.11+ with Tk, and the Microsoft x64 C++/OpenMP runtime. Start with the wheel, CPU runtime ZIP, and `SHA256SUMS.txt` from the [0.2.0a16 Windows review release](https://github.com/ajuelosemmanuel/bovary-windows/releases/tag/v0.2.0a16). Open the release while signed in to a GitHub account with tester access. Compare the two package hashes with the manifest, then open PowerShell in the download directory.
+Use Windows x64, an AVX2/FMA-capable CPU, and 64-bit Python 3.11 or newer with Tcl/Tk and the `python` command available in PowerShell. The CPU worker needs the Microsoft x64 C++/OpenMP runtime. [Microsoft Visual C++ Redistributable downloads](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/)
+
+Sign in with a GitHub account that has tester access. Download the wheel, CPU runtime ZIP, and `SHA256SUMS.txt` into one fresh folder, then open PowerShell in that folder. Run each block in this same session and stop if a block reports an error. [0.2.0a16 Windows review release](https://github.com/ajuelosemmanuel/bovary-windows/releases/tag/v0.2.0a16)
 
 ```powershell
-Expand-Archive .\bovary-0.2.0a16-cpu-review.zip -DestinationPath .\runtime
+$zip = 'bovary-0.2.0a16-cpu-review.zip'
+$wheel = 'bovary-0.2.0a16-py3-none-any.whl'
+$checksums = @(Get-Content -LiteralPath .\SHA256SUMS.txt -ErrorAction Stop)
+foreach ($file in @($zip, $wheel)) {
+    $pattern = '^([a-f0-9]{64})\s+' + [regex]::Escape($file) + '$'
+    $entry = @($checksums -match $pattern)
+    if ($entry.Count -ne 1) { throw "Expected one checksum for $file." }
+    $expected = ($entry[0] -split '\s+')[0]
+    $actual = (Get-FileHash -LiteralPath $file -Algorithm SHA256 -ErrorAction Stop).Hash
+    if ($actual -ne $expected) { throw "SHA256 mismatch for $file." }
+}
+Expand-Archive -LiteralPath $zip -DestinationPath .\runtime -ErrorAction Stop
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install --no-index --no-deps .\bovary-0.2.0a16-py3-none-any.whl
+if ($LASTEXITCODE -ne 0) { throw "Virtual environment creation failed." }
+.\.venv\Scripts\python.exe -m pip install --no-index --no-deps ".\$wheel"
 if ($LASTEXITCODE -ne 0) { throw "Wheel installation failed." }
-$env:BOVARY_HOME = (Resolve-Path .\runtime).Path
+$env:BOVARY_HOME = (Resolve-Path -LiteralPath .\runtime -ErrorAction Stop).Path
+$protocol = & .\runtime\work\build\bovary-cpu\bovary-infer.exe --require-cpu-only --protocol-version
+if ($LASTEXITCODE -ne 0 -or $protocol -ne 'bovary-worker 2') { throw "CPU worker startup check failed. Run bovary doctor as shown below." }
 ```
 
-Mini uses one pinned **14.6 GB** Gemma checkpoint. If you already have it, edit the model path below. If you need the weights, the [checkpoint guide](docs/configuration.md#verify-or-obtain-the-pinned-checkpoint) covers the model terms, download, and disk reserve.
+Mini uses one pinned **14.6 GB** Gemma checkpoint. Choose one of the next two blocks. [Checkpoint identity and model terms](docs/configuration.md#verify-or-obtain-the-pinned-checkpoint)
+
+**If you already have the checkpoint**, replace the example path with the path to your file. The verifier reads the whole file and creates a proof. If a conflicting proof already exists, choose a new filename for `$proof`.
 
 ```powershell
-$env:BOVARY_MODEL = 'D:\Models\gemma-4-26B-A4B-it-Q4_0.gguf'
-$env:BOVARY_MODEL_MANIFEST = Join-Path $env:BOVARY_HOME 'model-provenance.json'
-.\.venv\Scripts\python.exe .\runtime\tools\verify_model.py --model $env:BOVARY_MODEL --manifest $env:BOVARY_MODEL_MANIFEST
+$model = 'D:\Models\gemma-4-26B-A4B-it-Q4_0.gguf'
+$proof = Join-Path $env:BOVARY_HOME 'model-provenance.json'
+.\.venv\Scripts\python.exe .\runtime\tools\verify_model.py --model $model --manifest $proof
 if ($LASTEXITCODE -ne 0) { throw "Checkpoint verification failed." }
-.\.venv\Scripts\bovary.exe mini --prompt 'What is 17 plus 28? Answer with just the number.'
+$env:BOVARY_MODEL = $model
+$env:BOVARY_MODEL_MANIFEST = $proof
 ```
 
-The 0.2.0a15 smoke test returned `45` from a fresh offline install. If setup needs attention, run `.\.venv\Scripts\bovary.exe doctor` in the same shell.
+**If you need the checkpoint**, review the model terms above first. The downloader needs space for the remaining download plus 3 GiB. It resumes an interrupted transfer and verifies the file before creating its proof.
+
+```powershell
+$modelDirectory = Join-Path $env:BOVARY_HOME 'work\models'
+.\.venv\Scripts\python.exe .\runtime\tools\download_model.py --directory $modelDirectory
+if ($LASTEXITCODE -ne 0) { throw "Checkpoint download or verification failed." }
+$env:BOVARY_MODEL = Join-Path $modelDirectory 'gemma-4-26B-A4B-it-Q4_0.gguf'
+$env:BOVARY_MODEL_MANIFEST = Join-Path $modelDirectory 'model-provenance.json'
+```
+
+**Run the offline smoke test** after your model setup succeeds.
+
+```powershell
+.\.venv\Scripts\bovary.exe mini --prompt 'What is 17 plus 28? Answer with just the number.'
+if ($LASTEXITCODE -ne 0) { throw "Mini smoke test failed." }
+```
+
+The 0.2.0a16 smoke test returned `45` from a fresh offline install. If setup needs attention, run `.\.venv\Scripts\bovary.exe doctor` in the same shell. Before model setup, a missing manifest is expected. The packaged verifier and downloader are under `.\runtime\tools\`, even if the 0.2.0a16 diagnostic points to a source checkout.
 
 ## Try a code edit
 

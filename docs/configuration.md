@@ -16,6 +16,8 @@ The default supported text checkpoint is pinned to:
 
 The [GGUF model card](https://huggingface.co/ggml-org/gemma-4-26B-A4B-it-GGUF) links to the [Google source model card](https://huggingface.co/google/gemma-4-26B-A4B-it). The Google card identifies Apache 2.0 and links to the [publisher's license](https://ai.google.dev/gemma/docs/gemma_4_license), checked on 15 November 2026. Review those source materials before acquiring or redistributing weights. Bovary's MIT license covers its software, not the weights. The helper pins the artifact identity above; it does not establish model fitness or grant rights.
 
+If you installed the wheel and Windows CPU ZIP, follow the two checkpoint options in the [packaged Windows quick start](../README.md#install-the-windows-alpha-from-release-files). Those commands run from the download directory and use the helpers under `.\runtime\tools\`. The commands below run from the root of a source checkout.
+
 For an existing copy, create a new proof path beside it without copying the model:
 
 ```powershell
@@ -91,7 +93,7 @@ Statuses are `pass` (the described check passed), `fail` (a required setup check
 
 Normal model checks inspect the stored proof, filename, current size and file identity for bound proofs. They **do not perform fresh full-file hashing**. If Windows has no journal marker to compare, the default model file check reports unknown. For a current proof, `bovary doctor --verify-hash --timeout-s 600` explicitly compares all bytes with the stored proof, subject to the deadline. To create a new pinned checkpoint proof, use the guarded `tools/verify_model.py` command above.
 
-In the GUI, choose **Model setup…** for native file pickers and **Check paths / verification command** for consistency checks and the exact PowerShell verification command. Full hashing runs outside the GUI; the window does not launch it. A standalone wheel needs the source checkout's `tools/verify_model.py` to create a pinned proof. Select existing files; mismatched explicitly selected model/proof pairs are rejected. Missing default prerequisites remain actionable setup failures, never a device/model fallback.
+In the GUI, choose **Model setup…** for native file pickers and **Check paths / verification command** for consistency checks and a PowerShell verification command. Full hashing runs outside the GUI. The Windows CPU ZIP supplies `tools/verify_model.py` under the extracted runtime. If you installed the wheel alone, use the helper from a source checkout or the matching source distribution. Select the model and its completed proof together.
 
 At launch, path precedence is environment variables, then locally saved GUI paths, then runtime defaults. An explicit selection in the current window overrides the launch values and is saved under `paths` in ignored `work/bovary-settings.json`. On the next launch environment variables override saved paths again. Relative paths resolve under `BOVARY_HOME`/effective home. Blank selections explicitly use runtime defaults without rereading path environment variables. CPU and optional GPU executable selections are separate; changing device never silently falls back. CLI/API do not read GUI settings.
 

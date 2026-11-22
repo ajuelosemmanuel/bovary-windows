@@ -9,8 +9,10 @@ import json
 import hashlib
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -31,6 +33,65 @@ installed = load("check_installed")
 
 
 class ReleaseTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == "nt", "Windows package quick start")
+    def test_packaged_checkpoint_commands_select_the_files_returned_by_the_helpers(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        quick_start = readme.split("## Install the Windows alpha from release files", 1)[1]
+        quick_start = quick_start.split("\n## ", 1)[0]
+        commands = re.findall(r"(?m)^```powershell\n(.*?)\n```$", quick_start, re.DOTALL)
+        with tempfile.TemporaryDirectory(prefix="Bovary downloads ") as temporary:
+            directory = Path(temporary)
+            runtime = directory / "runtime"
+            helper_dir = runtime / "tools"
+            helper_dir.mkdir(parents=True)
+            interpreter = r".\.venv\Scripts\python.exe"
+            model_name = "gemma-4-26B-A4B-it-Q4_0.gguf"
+            fixture_model = directory / model_name
+            downloader = helper_dir / "download_model.py"
+            downloader.write_text(
+                "import argparse, pathlib\n"
+                "parser = argparse.ArgumentParser()\n"
+                "parser.add_argument('--directory', required=True, type=pathlib.Path)\n"
+                "directory = parser.parse_args().directory\n"
+                "directory.mkdir(parents=True)\n"
+                f"(directory / {model_name!r}).touch()\n"
+                "(directory / 'model-provenance.json').touch()\n",
+                encoding="utf-8",
+            )
+            verifier = helper_dir / "verify_model.py"
+            verifier.write_text(
+                "import argparse, pathlib\n"
+                "parser = argparse.ArgumentParser()\n"
+                "parser.add_argument('--model', required=True, type=pathlib.Path)\n"
+                "parser.add_argument('--manifest', required=True, type=pathlib.Path)\n"
+                "args = parser.parse_args()\n"
+                "args.model.touch()\n"
+                "args.manifest.touch()\n",
+                encoding="utf-8",
+            )
+            model_dir = runtime / "work" / "models"
+            for helper, model, proof in (
+                (verifier, fixture_model, runtime / "model-provenance.json"),
+                (downloader, model_dir / model_name, model_dir / "model-provenance.json"),
+            ):
+                with self.subTest(helper=helper.name):
+                    command, = (block for block in commands if helper.name in block)
+                    command = command.replace(interpreter, "& $env:BOVARY_TEST_PYTHON", 1)
+                    command = re.sub(r"'D:\\Models\\[^']+'", "$env:BOVARY_TEST_MODEL", command)
+                    completed = subprocess.run(
+                        ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
+                         "$ErrorActionPreference = 'Stop'\n" + command + "\n"
+                         "$env:BOVARY_MODEL\n$env:BOVARY_MODEL_MANIFEST\n"],
+                        cwd=directory, capture_output=True, text=True, timeout=30,
+                        env={**os.environ, "BOVARY_HOME": str(runtime),
+                             "BOVARY_TEST_MODEL": str(fixture_model),
+                             "BOVARY_TEST_PYTHON": sys.executable},
+                    )
+                    self.assertEqual(completed.returncode, 0, completed.stderr)
+                    self.assertEqual(completed.stdout.splitlines(), [str(model), str(proof)])
+                    self.assertTrue(model.is_file())
+                    self.assertTrue(proof.is_file())
+
     @staticmethod
     def wheel_fixture():
         project = {'name':'fixture-route', 'version':'1.0a1', 'description':'Public fixture',
