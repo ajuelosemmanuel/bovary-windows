@@ -2,23 +2,46 @@
   <img src="docs/images/bovary-banner.png" width="100%" alt="Bovary, with the portfolio pixel-art portrait on a dusty rose background">
 </p>
 
-# Bovary
+# How much AI can you run on the laptop you already own?
 
-**Run small, verifiable coding tasks with Gemma 4 26B on your Windows laptop.** Give Mini a source file and an expression to repair. It prints the revised code for review and releases the worker’s memory when the task ends. Once you’ve set up the model, your prompts and code stay on your machine. Local runs need no API key.
+**Bovary runs Gemma 4 26B locally on Windows.** Use it to turn a note into a checklist or ask for a small code edit. After setup, it works offline and keeps your prompts and files on your laptop. The Windows package runs on the CPU. With the optional CUDA build, a laptop with a 6 GB RTX 3060 finished a verified code edit in 19.25 seconds.
 
-[Install the packaged CPU version](#install-the-windows-alpha-from-release-files) · [Build the NVIDIA CUDA version](docs/reproducibility.md#build-and-try-the-cuda-worker) · [Try a code edit](#try-a-code-edit)
+[Install the packaged CPU version](#install-the-windows-alpha-from-release-files) · [Build the NVIDIA CUDA version](docs/reproducibility.md#build-and-try-the-cuda-worker)
 
-## A local Python repair
+## Turn a note into a checklist
 
-![Captioned terminal replay showing Mini fix an inclusive endpoint and a separate check pass all 405 cases](docs/images/bovary-mini-repair-demo.gif)
+We gave Mini this school fair planning note.
 
-In this replay of a recorded 0.2.0a14 run on an RTX 3060 Laptop GPU, Mini changed `start <= value < end` to `start <= value <= end` in **9.30 seconds** with a fresh CUDA worker and no answer-cache hit. A separate check passed all **405 input combinations**. [Replay details and pilot results](docs/use-cases.md#repair-demo)
+> Sam will book the hall by Tuesday. Lee offered to print the posters by Friday. We still need someone to bring the folding tables.
+
+Here’s the recorded answer from one fresh Windows CPU run. It took **22.66 seconds** wall-clock time, with no answer-cache hit.
+
+> **School Fair Planning Checklist**
+>
+> * [ ] Book the hall (Sam) – **Deadline: Tuesday**
+> * [ ] Print the posters (Lee) – **Deadline: Friday**
+> * [ ] Bring the folding tables (Open) – **Deadline: N/A**
+
+## Try it on your laptop
+
+After [CPU setup](#install-the-windows-alpha-from-release-files), run the same prompt in the configured PowerShell session.
+
+```powershell
+.\.venv\Scripts\bovary.exe mini --tokens 128 --json --prompt "Turn this school fair planning note into a short checklist. Keep each owner and deadline. Mark the undecided item as open. Do not invent details. Note: Sam will book the hall by Tuesday. Lee offered to print the posters by Friday. We still need someone to bring the folding tables." |
+    ConvertFrom-Json | Format-List text, elapsed_s
+```
+
+Check that Sam still has the hall by Tuesday, Lee has the posters by Friday, and the folding tables remain open without an invented owner or deadline. Wording can vary.
+
+If you’re in the private pilot, share your hardware, the reported `elapsed_s`, and which details the answer kept. If setup stopped you, include the step and a redacted error. [Report your laptop results privately](https://github.com/ajuelosemmanuel/bovary-windows/issues/new?title=%5BWindows%20review%5D%20School%20fair%20checklist&body=Laptop%20model%3A%0ACPU%20or%20GPU%3A%0ARAM%3A%0ARuntime%20profile%20%28CPU%20or%20CUDA%29%3A%0AReported%20elapsed_s%3A%0A%0AChecklist%20results%0A-%20Sam%20books%20the%20hall%20by%20Tuesday%3A%0A-%20Lee%20prints%20the%20posters%20by%20Friday%3A%0A-%20The%20folding%20tables%20remain%20open%20without%20a%20new%20owner%20or%20deadline%3A%0A%0AFirst%20setup%20blocker%2C%20if%20any%20%28step%20and%20redacted%20error%29%3A%0A)
 
 ## Measured speed and memory on a 6 GB GPU
 
-The CUDA worker keeps frequently used expert weights on the GPU and streams others from SSD. An optional host cache uses additional system RAM to cut SSD reads. For 0.2.0a15, we measured three pairs on an RTX 3060 laptop of fresh runs with the same 107-token prompt for a full-function edit. The table shows medians.
+On an RTX 3060 Laptop GPU with 6 GB of VRAM, Mini finished a Python edit in a median **19.25 seconds** at the default host-cache setting. Median peak system RAM for the native inference worker was **635 MiB**. The CUDA worker keeps frequently used expert weights on the GPU and streams others from SSD. An optional host cache uses additional system RAM to cut SSD reads.
 
-| Extra host cache | First visible token | Time to finish | Peak worker RAM | Peak GPU memory across all apps |
+The table shows medians from three pairs of fresh 0.2.0a15 runs on that laptop using the same 107-token prompt for a full-function edit.
+
+| Extra host cache | First visible token | Time to finish | Peak native worker working set | Peak GPU memory across all apps |
 |---|---:|---:|---:|---:|
 | 0 MiB (default) | 6.10 s | 19.25 s | 635 MiB | 5,040 MiB |
 | 4,096 MiB | 6.40 s | 16.79 s | 4,731 MiB | 5,040 MiB |
@@ -74,7 +97,11 @@ Ask Mini to replace just the loop bound:
 
 Gemma generates the replacement expression. Mini checks that the surrounding Python syntax tree is preserved and prints the revised function for you to review. Your file stays untouched.
 
-Mini repaired both selected expressions in our eight-task pilot. It also missed one of two seeded bugs during review. Watch the [captioned repair demo](docs/use-cases.md#repair-demo) or see the [coding tasks, timings, and checks](docs/use-cases.md).
+![Captioned terminal replay showing Mini fix an inclusive endpoint and a separate check pass all 405 cases](docs/images/bovary-mini-repair-demo.gif)
+
+In this replay of a recorded 0.2.0a14 run on an RTX 3060 Laptop GPU, Mini changed `start <= value < end` to `start <= value <= end` in **9.30 seconds** with a fresh CUDA worker and no answer-cache hit. A separate check passed all **405 input combinations**. [Replay details](docs/use-cases.md#repair-demo)
+
+Mini repaired both selected expressions in our eight-task pilot. It also missed one of two seeded bugs during review. [Coding tasks, timings, and checks](docs/use-cases.md)
 
 ## Choose how to run
 
