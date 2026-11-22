@@ -4,9 +4,23 @@
 
 # How much AI can you run on the laptop you already own?
 
-**Bovary runs Gemma 4 26B locally on Windows.** Use it to turn a note into a checklist or ask for a small code edit. After setup, it works offline and keeps your prompts and files on your laptop. The Windows package runs on the CPU. With the optional CUDA build, a laptop with a 6 GB RTX 3060 finished a verified code edit in 19.25 seconds.
+Run Gemma 26B or Inkling 2 Mini on your Windows laptop. Turn a note into a checklist, ask about a function, or try the same question with both models. Once setup finishes, your prompts and answers stay on your machine.
 
-[Install the packaged CPU version](#install-the-windows-alpha-from-release-files) · [Build the NVIDIA CUDA version](docs/reproducibility.md#build-and-try-the-cuda-worker)
+**[Download Bovary for Windows x64 (ZIP, 5.6 MB)](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a16/Bovary-Windows-a16-model-choice.zip)** · [SHA-256 checksums](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a16/SHA256SUMS.txt)
+
+## Start Bovary on Windows
+
+1. Choose **Extract All** and open the extracted folder. Double-click **Start Bovary.cmd**. The launcher offers to install Python and the Microsoft runtime if needed.
+2. Choose a model below. Keep the folder on a drive with enough space for the weights.
+3. Type a question or press Enter for a sample. Type `/models` to switch and `/quit` to close. Open the same launcher next time to reuse your downloads.
+
+| Choose | Best fit | Download | Allow free |
+|---|---|---:|---:|
+| **G · Gemma 26B** | Everyday questions on an AVX2/FMA Windows CPU | 14.6 GB | 18 GB |
+| **I · Inkling 2 Mini** | Coding tasks on an NVIDIA GPU with a CUDA 13.5-compatible driver and a local NTFS SSD | 18.3 GB including CUDA dependencies | 39 GB |
+| **B · Both** | Try both models and switch in the same session | About 32.9 GB | 54 GB |
+
+Inkling solved **4 of 6** tasks in our laptop coding pilot, compared with **3 of 6** for Gemma. Median time to the last answer text across those six prompts was **55 seconds for Inkling and 14 seconds for Gemma**. Speed and quality vary by task.
 
 ## Turn a note into a checklist
 
@@ -23,6 +37,8 @@ Here’s the recorded answer from one fresh Windows CPU run. It took **22.66 sec
 > * [ ] Bring the folding tables (Open) – **Deadline: N/A**
 
 ## Try it on your laptop
+
+In the launcher, paste the school fair note above and ask for a checklist with owners and deadlines. For timing and diagnostic output, follow the manual instructions below.
 
 After [CPU setup](#install-the-windows-alpha-from-release-files), run the same prompt in the configured PowerShell session. The JSON includes the status, answer text, and any reported error.
 
@@ -59,7 +75,7 @@ Setting `--host-cache-mib 4096` took **12.7% less time** for this edit, and all 
 - **Packaged CPU.** Install the Python wheel and CPU runtime ZIP from the release files below. The CPU worker is the default and runs without an NVIDIA GPU.
 - **Source-built NVIDIA CUDA.** Build the CUDA worker, make its runtime dependencies available, and select `--preset gpu-prefill-2g`. With the wheel, set `BOVARY_CUDA_EXE` to the built `bovary-infer.exe`. [CUDA build instructions](docs/reproducibility.md#build-and-try-the-cuda-worker)
 
-Both paths use the same pinned **14.6 GB Gemma checkpoint**. [Verify or obtain the checkpoint](docs/configuration.md#verify-or-obtain-the-pinned-checkpoint)
+These two manual Gemma paths use the same pinned **14.6 GB Gemma checkpoint**. [Verify or obtain the checkpoint](docs/configuration.md#verify-or-obtain-the-pinned-checkpoint)
 
 ## Install the Windows alpha from release files
 
