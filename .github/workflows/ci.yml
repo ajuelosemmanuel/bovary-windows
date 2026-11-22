@@ -1,154 +1,131 @@
-name: CPU and fake-provider checks
-on: [push, pull_request, workflow_dispatch]
+name: First-user Windows a16 review
+on:
+  push:
+    branches:
+      - 'qa/first-user-*'
 permissions:
   contents: read
 jobs:
-  windows-cpu:
+  release-consumer:
     runs-on: windows-2022
-    timeout-minutes: 35
-    env:
-      PYTHONPATH: python
-      BOVARY_LIVE_API: "0"
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          persist-credentials: false
-      - name: Use canonical same-volume temporary paths
+    timeout-minutes: 50
+    defaults:
+      run:
         shell: pwsh
+    steps:
+      - name: Check hosted Windows and choose a volume for the pinned checkpoint
         run: |
-          # Hosted TEMP can use an 8.3 alias and live on a different drive than the checkout.
-          # Keep fixture directories outside the Git checkout for standalone Git tests.
-          $tempDir = (New-Item -ItemType Directory -Path (Join-Path $env:RUNNER_TEMP 'bovary-ci-temp') -Force).FullName
-          $tempDir = (Resolve-Path -LiteralPath $tempDir).Path
-          if ([IO.Path]::GetPathRoot($tempDir) -ne [IO.Path]::GetPathRoot($env:GITHUB_WORKSPACE)) {
-            throw 'Test temporary directory must share the checkout volume'
+          $minimum = 14618145824 + 3GB + 256MB
+          $drives = [IO.DriveInfo]::GetDrives() | Where-Object {
+            $_.Name -in @('C:\', 'D:\') -and $_.IsReady -and $_.DriveType -eq 'Fixed'
           }
-          @("TEMP=$tempDir", "TMP=$tempDir") | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          foreach ($drive in $drives) {
+            Write-Host ('Volume {0} has {1:N2} GiB available' -f $drive.Name[0], ($drive.AvailableFreeSpace / 1GB))
+          }
+          $volume = $drives | Where-Object AvailableFreeSpace -ge $minimum |
+            Sort-Object AvailableFreeSpace -Descending | Select-Object -First 1
+          if (!$volume) { throw 'Neither C nor D has space for the 14.6 GB checkpoint, downloader reserve and setup margin.' }
+          if (![Environment]::Is64BitOperatingSystem) { throw 'Windows x64 is required.' }
+          $root = New-Item -ItemType Directory -Path (Join-Path $volume.RootDirectory.FullName "bovary-review-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT")
+          "BOVARY_TRIAL_ROOT=$($root.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host ('Windows version {0}, available processors {1}' -f [Environment]::OSVersion.Version, [Environment]::ProcessorCount)
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.13'
-      - run: python -m pip install -r requirements-build.txt
-      - run: python -m pip install --no-index --no-deps --no-build-isolation -e .
-      - run: python scripts/prepare_release.py --check --check-tracked
-      - run: python scripts/check_distribution.py
-      - run: python scripts/bootstrap_engine.py
-      - run: python scripts/bootstrap_engine.py --check
-      - name: Build CPU and path-test fixture
-        shell: cmd
-        run: scripts\build.cmd cpu 2 test-paths
-      - name: No-model CPU and protocol-2 smoke
-        shell: pwsh
+          architecture: x64
+      - name: Fetch the exact private prerelease assets
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          $result = & .\work\build\bovary-cpu\bovary-infer.exe 2>&1 | Out-String
-          if ($LASTEXITCODE -ne 1 -or $result -notmatch 'invalid arguments') { throw 'CPU smoke failed' }
-          $protocol = & .\work\build\bovary-cpu\bovary-infer.exe --require-cpu-only --protocol-version
-          if ($LASTEXITCODE -ne 0 -or $protocol.Trim() -ne 'bovary-worker 2') { throw 'Native protocol mismatch' }
-      - name: Run full suite with native CPU and Unicode fixtures
-        shell: pwsh
+          gh release download v0.2.0a16 --repo $env:GITHUB_REPOSITORY --dir $env:BOVARY_TRIAL_ROOT `
+            --pattern bovary-0.2.0a16-cpu-review.zip --pattern bovary-0.2.0a16-py3-none-any.whl --pattern SHA256SUMS.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Private prerelease download failed.' }
+      - name: Compare reviewed hashes and follow the README package install
         run: |
-          $env:BOVARY_TEST_NATIVE_DIR = (Resolve-Path -LiteralPath work/build/bovary-cpu).Path
-          foreach ($name in 'bovary-infer.exe','bovary-quantize.exe','bovary-paths-test.exe') {
-            if (!(Test-Path -LiteralPath (Join-Path $env:BOVARY_TEST_NATIVE_DIR $name) -PathType Leaf)) {
-              throw "Missing CPU test fixture $name"
+          Set-Location -LiteralPath $env:BOVARY_TRIAL_ROOT
+          $expected = @{
+            'bovary-0.2.0a16-cpu-review.zip' = '5b5d666bff2d68f5a52f10f608b168c2dbdac5bf92c74271ea068e3f81b5157a'
+            'bovary-0.2.0a16-py3-none-any.whl' = '439db05d1dfccdf651ad7dce5f7f55f6ca0663f63001826e1dbcf35b475225af'
+          }
+          $manifest = Get-Content -LiteralPath SHA256SUMS.txt
+          foreach ($name in $expected.Keys) {
+            $record = @($manifest | Where-Object { $_ -match ('^[0-9a-fA-F]{64}\s+\*?' + [regex]::Escape($name) + '$') })
+            $actual = (Get-FileHash -LiteralPath $name -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($record.Count -ne 1 -or $record[0].Substring(0, 64) -ne $expected[$name] -or $actual -ne $expected[$name]) {
+              throw "Reviewed SHA256 mismatch for $name."
             }
+            Write-Host "$name SHA256 $actual"
           }
-          # The build cache supplies Ninja when it is absent from the step's PATH.
-          $ninja = (Select-String -LiteralPath work/build/bovary-cpu/CMakeCache.txt -Pattern '^CMAKE_MAKE_PROGRAM:[^=]+=(.+)$').Matches.Groups[1].Value
-          if (!(Get-Command ninja -ErrorAction SilentlyContinue) -and (!$ninja -or !(Test-Path -LiteralPath $ninja -PathType Leaf))) {
-            throw 'Ninja is required for the build-freshness regression'
+          Expand-Archive .\bovary-0.2.0a16-cpu-review.zip -DestinationPath .\runtime
+          python -m venv .venv
+          if ($LASTEXITCODE -ne 0) { throw 'Could not create a fresh venv.' }
+          .\.venv\Scripts\python.exe -m pip install --no-index --no-deps .\bovary-0.2.0a16-py3-none-any.whl
+          if ($LASTEXITCODE -ne 0) { throw 'Wheel installation failed.' }
+          .\.venv\Scripts\python.exe -c "import tkinter; print('Python Tk version', tkinter.TkVersion)"
+          if ($LASTEXITCODE -ne 0) { throw 'Python Tk import failed.' }
+      - name: Obtain and verify the public pinned checkpoint
+        run: |
+          Set-Location -LiteralPath $env:BOVARY_TRIAL_ROOT
+          $PSNativeCommandUseErrorActionPreference = $false
+          $env:BOVARY_HOME = (Resolve-Path .\runtime).Path
+          $modelDir = Join-Path $env:BOVARY_HOME 'work\models'
+          $env:BOVARY_MODEL = Join-Path $modelDir 'gemma-4-26B-A4B-it-Q4_0.gguf'
+          $env:BOVARY_MODEL_MANIFEST = Join-Path $modelDir 'model-provenance.json'
+          $downloadLog = Join-Path $env:BOVARY_TRIAL_ROOT 'checkpoint-download.log'
+          .\.venv\Scripts\python.exe .\runtime\tools\download_model.py --directory $modelDir *> $downloadLog
+          if ($LASTEXITCODE -ne 0) {
+            $lastProgress = Get-Content -LiteralPath $downloadLog | Select-String '^\{"downloaded": \d+, "total": \d+\}$' | Select-Object -Last 1
+            if ($lastProgress) { Write-Host $lastProgress.Line }
+            $failure = Get-Content -LiteralPath $downloadLog | Select-String -AllMatches '\bHTTP Error (\d{3})\b' | Select-Object -Last 1
+            if ($failure) { Write-Host "Checkpoint HTTP error $($failure.Matches[0].Groups[1].Value)" }
+            throw 'Pinned checkpoint download or downloader verification failed.'
           }
-          python -m unittest discover -s tests -v
-          if ($LASTEXITCODE -ne 0) { throw 'Full test suite failed' }
-      - name: Run Inkling preview tests without models
-        run: python -m unittest discover -s previews/inkling -p test_preview.py -v
-      - name: Build wheel
-        run: python -m pip wheel --no-index --no-deps --no-build-isolation . --wheel-dir dist
-      - name: Verify actual wheel and isolated installed behavior
-        shell: pwsh
-        run: |
-          $wheels = @(Get-ChildItem -LiteralPath dist -Filter *.whl)
-          if ($wheels.Count -ne 1) { throw 'Expected one built wheel' }
-          python scripts/prepare_release.py --check-wheel $wheels[0].FullName
-          if ($LASTEXITCODE -ne 0) { throw 'Wheel structure/source/RECORD check failed' }
-          python scripts/check_installed.py --wheel $wheels[0].FullName --native work/build/bovary-cpu/bovary-infer.exe --work-dir work/ci-installed-check --output outputs/ci-installed-check.json
-          if ($LASTEXITCODE -ne 0) { throw 'Isolated installed check failed' }
-      - name: Build and verify complete source distribution
-        shell: pwsh
-        run: |
-          python -c "from setuptools.build_meta import build_sdist; build_sdist('dist')"
-          if ($LASTEXITCODE -ne 0) { throw 'Source distribution build failed' }
-          $archives = @(Get-ChildItem -LiteralPath dist -Filter *.tar.gz)
-          if ($archives.Count -ne 1) { throw 'Expected one source distribution' }
-          python scripts/check_distribution.py --sdist $archives[0].FullName
-          if ($LASTEXITCODE -ne 0) { throw 'Source distribution boundary check failed' }
-      - name: Rebuild and check wheel from the emitted source distribution
-        shell: pwsh
-        run: |
-          $archives = @(Get-ChildItem -LiteralPath dist -Filter *.tar.gz)
-          if ($archives.Count -ne 1) { throw 'Expected one source distribution' }
-          python scripts/check_distribution.py --sdist $archives[0].FullName --extract-to work/ci-sdist-source
-          if ($LASTEXITCODE -ne 0) { throw 'Checked source extraction failed' }
-          $source = (Resolve-Path -LiteralPath work/ci-sdist-source).Path
-          $rebuilt = (New-Item -ItemType Directory -Path work/ci-sdist-wheel).FullName
-          Remove-Item Env:PYTHONPATH,Env:PYTHONHOME -ErrorAction SilentlyContinue
-          Push-Location -LiteralPath $source
-          try {
-            python -I -m pip wheel --no-index --no-deps --no-build-isolation --no-cache-dir . --wheel-dir $rebuilt
-            if ($LASTEXITCODE -ne 0) { throw 'Source-distribution wheel rebuild failed' }
-          } finally { Pop-Location }
-          $wheels = @(Get-ChildItem -LiteralPath $rebuilt -Filter *.whl)
-          if ($wheels.Count -ne 1) { throw 'Expected one rebuilt wheel' }
-          python scripts/prepare_release.py --check-wheel $wheels[0].FullName
-          if ($LASTEXITCODE -ne 0) { throw 'Rebuilt wheel structure/source/metadata/RECORD check failed' }
-          python scripts/check_installed.py --wheel $wheels[0].FullName --native work/build/bovary-cpu/bovary-infer.exe --work-dir work/ci-sdist-installed-check --output outputs/ci-sdist-installed-check.json
-          if ($LASTEXITCODE -ne 0) { throw 'Rebuilt wheel isolated installed check failed' }
-      - name: Prepare bounded consumer inputs without source or models
-        shell: pwsh
-        run: |
-          $wheels = @(Get-ChildItem -LiteralPath work/ci-sdist-wheel -Filter *.whl)
-          if ($wheels.Count -ne 1) { throw 'Expected one checked source-distribution wheel' }
-          $wheel = $wheels[0]
-          $bundle = New-Item -ItemType Directory -Path work/ci-consumer-inputs
-          Copy-Item -LiteralPath $wheel.FullName -Destination $bundle.FullName
-          Copy-Item -LiteralPath work/build/bovary-cpu/bovary-infer.exe -Destination $bundle.FullName
-          Copy-Item -LiteralPath scripts/check_installed.py -Destination $bundle.FullName
-          $version = python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])"
-          if ($LASTEXITCODE -ne 0) { throw 'Could not read candidate version' }
-          $inputs = [ordered]@{
-            version = $version.Trim()
-            wheel = $wheel.Name
-            wheel_sha256 = (Get-FileHash -LiteralPath $wheel.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-            native = 'bovary-infer.exe'
-            native_sha256 = (Get-FileHash -LiteralPath work/build/bovary-cpu/bovary-infer.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $verify = .\.venv\Scripts\python.exe .\runtime\tools\verify_model.py --model $env:BOVARY_MODEL --manifest $env:BOVARY_MODEL_MANIFEST 2> $null
+          if ($LASTEXITCODE -ne 0) { throw 'README checkpoint verification failed.' }
+          $proof = ($verify -join "`n") | ConvertFrom-Json
+          if ($proof.sha256 -ne 'd208665ab1cd3a69f7a9a4bc59430e8448c8093d9b06334f566ac59d6d504a03') {
+            throw 'README verifier returned an unexpected model identity.'
           }
-          $inputs | ConvertTo-Json | Set-Content -LiteralPath work/ci-consumer-inputs/inputs.json -Encoding utf8
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2; verified 2026-11-15
-        with:
-          name: bovary-consumer-inputs
-          path: work/ci-consumer-inputs/
-          if-no-files-found: error
-          retention-days: 7
-          include-hidden-files: false
-  # A separate hosted image validates the artifacts without an editable checkout.
-  # It still includes hosted-runner runtimes: this is not a clean desktop installer test.
-  windows-installed-consumer:
-    needs: windows-cpu
-    runs-on: windows-2022
-    timeout-minutes: 15
-    steps:
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
-        with:
-          python-version: '3.13'
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2; verified 2026-11-15
-        with:
-          name: bovary-consumer-inputs
-          path: ${{ runner.temp }}/bovary-consumer-inputs
-          digest-mismatch: error
-      - name: Check installed wheel, withdrawn GUI and native protocol without source
-        shell: pwsh
+          Write-Host "Checkpoint verified with SHA256 $($proof.sha256)."
+          @("BOVARY_HOME=$env:BOVARY_HOME", "BOVARY_MODEL=$env:BOVARY_MODEL", "BOVARY_MODEL_MANIFEST=$env:BOVARY_MODEL_MANIFEST") |
+            Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Run doctor and both README Mini tasks
         run: |
-          Remove-Item Env:PYTHONPATH,Env:PYTHONHOME,Env:BOVARY_HOME -ErrorAction SilentlyContinue
-          $bundle = Join-Path $env:RUNNER_TEMP 'bovary-consumer-inputs'
-          $inputs = Get-Content -LiteralPath (Join-Path $bundle 'inputs.json') -Raw | ConvertFrom-Json
-          python -I (Join-Path $bundle 'check_installed.py') --wheel (Join-Path $bundle $inputs.wheel) --native (Join-Path $bundle $inputs.native) --expected-version $inputs.version --wheel-sha256 $inputs.wheel_sha256 --native-sha256 $inputs.native_sha256 --work-dir (Join-Path $env:RUNNER_TEMP 'bovary installed consumer') --output (Join-Path $env:RUNNER_TEMP 'bovary-installed-consumer.json')
-          if ($LASTEXITCODE -ne 0) { throw 'Fresh hosted-image consumer check failed' }
+          Set-Location -LiteralPath $env:BOVARY_TRIAL_ROOT
+          $PSNativeCommandUseErrorActionPreference = $false
+          $exe = '.\.venv\Scripts\bovary.exe'
+          $doctorText = & $exe doctor --json 2> $null
+          $doctorExit = $LASTEXITCODE
+          $doctor = $doctorText | ConvertFrom-Json
+          $doctor.checks | Select-Object id, status | Format-Table | Out-String | Write-Host
+          if ($doctorExit -ne 0 -or $doctor.exit_code -ne 0) { throw 'Doctor found a required setup failure.' }
+
+          $timer = [Diagnostics.Stopwatch]::StartNew()
+          $arithmetic = & $exe mini --prompt 'What is 17 plus 28? Answer with just the number.' 2> $null
+          $arithmeticExit = $LASTEXITCODE
+          $timer.Stop()
+          if ($arithmeticExit -ne 0 -or ($arithmetic -join "`n").Trim() -ne '45') {
+            throw "README arithmetic failed (exit $arithmeticExit)."
+          }
+          Write-Host ('README arithmetic: 45 ({0:N2} seconds wall-clock)' -f $timer.Elapsed.TotalSeconds)
+
+          $prompt = 'Turn this school fair planning note into a short checklist. Keep each owner and deadline. Mark the undecided item as open. Do not invent details. Note: Sam will book the hall by Tuesday. Lee offered to print the posters by Friday. We still need someone to bring the folding tables.'
+          $answer = & $exe mini --tokens 128 --json --prompt $prompt 2> $null
+          if ($LASTEXITCODE -ne 0) { throw 'README checklist process failed.' }
+          $row = $answer | ConvertFrom-Json
+          if ($row.status -ne 'complete' -or $row.cache_hit -ne $false -or $row.model_calls -ne 1 -or $row.elapsed_s -le 0) {
+            throw 'README checklist returned an incomplete or unexpected result.'
+          }
+          Write-Host ('README checklist ({0:N2} seconds reported, no cache hit):' -f $row.elapsed_s)
+          Write-Host $row.text
+          $lines = @($row.text -split '\r?\n' | Where-Object { $_ -match '^\s*(?:[-*+]|\d+[.)])\s+' })
+          $hall = @($lines | Where-Object { $_ -match '\bhall\b' })
+          $posters = @($lines | Where-Object { $_ -match '\bposters\b' })
+          $tables = @($lines | Where-Object { $_ -match '\bfolding tables\b' })
+          if ($lines.Count -ne 3 -or $hall.Count -ne 1 -or $hall[0] -notmatch '\bSam\b' -or $hall[0] -notmatch '\bTuesday\b' -or
+              $posters.Count -ne 1 -or $posters[0] -notmatch '\bLee\b' -or $posters[0] -notmatch '\bFriday\b' -or
+              $tables.Count -ne 1 -or $tables[0] -notmatch '\b(open|unassigned|undecided)\b' -or
+              $tables[0] -match '\b(Sam|Lee|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b') {
+            throw 'Checklist failed the item, owner, deadline or open-item checks.'
+          }
+          Write-Host 'Checklist structure and expected values passed; review the synthetic text for invented details.'
