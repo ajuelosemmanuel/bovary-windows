@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "measured_local_authored_diagnostic",
+  "date": "2026-11-14",
+  "auto_qualified": false,
+  "representative": false,
+  "live_provider_requests": 0,
+  "gpu_initialized_or_queried": false,
+  "configuration": {
+    "profile": "cpu-only",
+    "context": 2048,
+    "threads": 2,
+    "prompt_batch": 32,
+    "requested_output_tokens": 8,
+    "model_sha256": "d208665ab1cd3a69f7a9a4bc59430e8448c8093d9b06334f566ac59d6d504a03",
+    "final_native_source_sha256": "5908a9df14ba3bf56bad9e248e70cb6e66abe1707ca913d538002beaccef5cef",
+    "guarded_local_binary_sha256": "1f985138ba373f70c8c8b2c819100acf57ea0842416828fe5e179222bad47865"
+  },
+  "legacy_equivalence": {
+    "byte_identical_to_legacy": true,
+    "compared_bytes": 7340032,
+    "logits_sha256": "2e2885396f9f52524841eeed92ee3b5dfd5c7418a37c962fc960997322c8ed4d",
+    "token_ids_equal": true,
+    "binary_sha256": "093761e06e7a7a7cd420b78e5e22867c153fcd38eb1281391cefad50748757c7",
+    "native_source_sha256": "5908a9df14ba3bf56bad9e248e70cb6e66abe1707ca913d538002beaccef5cef",
+    "context": 2048,
+    "threads": 2,
+    "prompt_batch": 32,
+    "scope": "Final path-mapped release binary against saved original executable; exact same model/backend/context/threads/prompt/batch"
+  },
+  "persistent_worker": {
+    "three_requests_same_pid": true,
+    "independent_task_first_third_same_tokens": true,
+    "legacy_worker_tokens_match": true,
+    "cancellation_reaped_child": true,
+    "recovery_new_pid": true,
+    "recovery_tokens_match": true,
+    "explicit_unload": true
+  },
+  "limitations": [
+    "Authored short diagnostics; not representative workload quality or useful p95.",
+    "User used the computer during checks; CPU clocks, cache and competing work were uncontrolled. Timings demonstrate boundaries, not a controlled speedup.",
+    "Resident model weights are reused; each request recreates its context/KV allocation.",
+    "No GPU runtime rerun, live commercial evaluation, electricity measurement or paid request.",
+    "Source build and package checks do not prove a clean machine has required Python/Tk and Microsoft runtimes."
+  ],
+  "guarded_local_cli_requests": [
+    {
+      "status": "complete",
+      "configuration": "cpu-only-ctx2048-threads2-gemma4-text-v1",
+      "input_tokens": 23,
+      "output_tokens": 6,
+      "warm": false,
+      "startup_s": 7.6470113999967,
+      "ttft_s": 21.336230099987006,
+      "end_to_end_s": 24.20734990001074,
+      "cost_usd": null,
+      "cost_status": "unmeasured_local_compute"
+    },
+    {
+      "status": "complete",
+      "configuration": "cpu-only-ctx2048-threads2-gemma4-text-v1",
+      "input_tokens": 23,
+      "output_tokens": 6,
+      "warm": true,
+      "startup_s": 0.0,
+      "ttft_s": 5.8459643999813125,
+      "end_to_end_s": 8.414917699992657,
+      "cost_usd": null,
+      "cost_status": "unmeasured_local_compute"
+    }
+  ],
+  "release_binary": {
+    "relative_path": "work/build/source-release/lowcost-infer.exe",
+    "sha256": "093761e06e7a7a7cd420b78e5e22867c153fcd38eb1281391cefad50748757c7",
+    "private_path_scan_passed": true,
+    "cpu_only": true,
+    "build_manifest": "outputs/workbench-mapped-build-20261114/build-manifest.json"
+  },
+  "real_local_evaluation": {
+    "artifact_relative_path": "outputs/workbench-final-20261114/local-evaluation/evaluation.json",
+    "artifact_sha256": "229825d894747ec02c974901791eae213fac53933aacf767a35b852adfa448ca",
+    "source_kind": "measured",
+    "dataset_id": "authored-three-case-local-smoke-v2",
+    "synthetic": true,
+    "representative": false,
+    "held_out": false,
+    "validator_version": "validators-v2",
+    "summary": {
+      "local": {
+        "cases": 3,
+        "correct": 2,
+        "success_rate": 0.6666666666666666,
+        "false_acceptances": 0,
+        "errors": 0,
+        "attempts": 3,
+        "fallback_rate": 0.0,
+        "median_latency_s": 15.67804349999642,
+        "p95_latency_s": 34.98021870001685,
+        "p95_observations": 3,
+        "p95_caution": "Fewer than 100 observations; tail estimate is unstable",
+        "median_ttft_s": 13.110723300022073,
+        "ttft_observations": 3,
+        "cold_model_load_s": [
+          3.9923580000177026
+        ],
+        "cold_observations": 1,
+        "warm_observations": 2,
+        "usage": {
+          "input_tokens": 122,
+          "output_tokens": 31,
+          "total_tokens": null
+        },
+        "billed_usage_details": [
+          {
+            "input_tokens": 34,
+            "output_tokens": 25,
+            "model_sha256": "d208665ab1cd3a69f7a9a4bc59430e8448c8093d9b06334f566ac59d6d504a03"
+          },
+          {
+            "input_tokens": 43,
+            "output_tokens": 1,
+            "model_sha256": "d208665ab1cd3a69f7a9a4bc59430e8448c8093d9b06334f566ac59d6d504a03"
+          },
+          {
+            "input_tokens": 45,
+            "output_tokens": 5,
+            "model_sha256": "d208665ab1cd3a69f7a9a4bc59430e8448c8093d9b06334f566ac59d6d504a03"
+          }
+        ],
+        "total_cost_usd": null,
+        "cost_per_successful_task_usd": null
+      }
+    },
+    "case_outcomes": [
+      {
+        "case_id": "extract-simple",
+        "status": "needs_review",
+        "validation": "fail",
+        "elapsed_s": 34.98021870001685
+      },
+      {
+        "case_id": "classify-negation",
+        "status": "complete",
+        "validation": "pass",
+        "elapsed_s": 13.147273799986579
+      },
+      {
+        "case_id": "format-sort",
+        "status": "complete",
+        "validation": "pass",
+        "elapsed_s": 15.67804349999642
+      }
+    ],
+    "deterministic_baselines": [
+      {
+        "case_id": "extract-simple",
+        "passed": true,
+        "elapsed_s": 4.3100008042529225e-05
+      },
+      {
+        "case_id": "format-sort",
+        "passed": true,
+        "elapsed_s": 9.299983503296971e-06
+      }
+    ],
+    "auto_qualified": false
+  },
+  "checks": {
+    "unit_tests_passed": 86,
+    "live_provider_requests": 0,
+    "source_and_cpu_archives_publication": "not published",
+    "cuda_runtime": "not exercised",
+    "fresh_network_engine_bootstrap": "passed",
+    "fresh_cpu_build": "passed",
+    "source_patch_applies_exactly": "passed",
+    "isolated_wheel_install": "passed",
+    "cuda_compile_and_parser_guards": "passed; no GPU inference or telemetry"
+  }
+}

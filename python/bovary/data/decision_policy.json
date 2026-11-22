@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "local_max_complexity": "low",
+  "minimum_success_rate": 0.9,
+  "minimum_cases": 100,
+  "models": {
+    "local": {
+      "model": "gemma-4-26B-A4B-it-Q4_0",
+      "configuration": "balanced-4k",
+      "context_tokens": 4096,
+      "cost_per_request_usd": null,
+      "monthly_fixed_cost_usd": null,
+      "evaluations": []
+    },
+    "commercial": {
+      "model": "gpt-6.1-sol",
+      "configuration": "standard-reasoning-medium",
+      "context_tokens": 1050000,
+      "cost_per_request_usd": null,
+      "monthly_fixed_cost_usd": null,
+      "evaluations": []
+    }
+  }
+}

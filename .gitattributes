@@ -1,0 +1,4 @@
+# Preserve reviewed source bytes and hash-pinned patches across Windows clones.
+* -text
+*.png binary
+*.gif binary

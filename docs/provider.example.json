@@ -1,0 +1,15 @@
+{
+  "enabled": false,
+  "account": "",
+  "permitted_data": ["public-synthetic"],
+  "session_cap_usd": 0,
+  "model": "gpt-6.1-sol",
+  "configuration": "responses-v1",
+  "context_tokens": 4096,
+  "max_output_tokens": 512,
+  "input_usd_per_million": null,
+  "output_usd_per_million": null,
+  "pricing_version": "",
+  "timeout_s": 30,
+  "capabilities_checked": "2026-11-14"
+}

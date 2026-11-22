@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "historical_local_measurement",
+  "auto_qualification": false,
+  "source_relative_path": "outputs/cpu-only/benchmark/results.json",
+  "source_sha256": "42d943860e3bd27c0935e72d47a45cb506a9efc43ff266872190d24ca579dc6f",
+  "hardware": {
+    "cpu": "Intel Core i7-12700H",
+    "physical_ram_bytes": 34029162496,
+    "os": "Windows 11 x64",
+    "ssd": "SK hynix BC711 NVMe"
+  },
+  "configuration": {
+    "model_sha256": "d208665ab1cd3a69f7a9a4bc59430e8448c8093d9b06334f566ac59d6d504a03",
+    "model_bytes": 14618145824,
+    "engine_revision": "2a4daf0e08d6a9b6993ee0d4a9a3cfc35a6f405c",
+    "binary_sha256": "cb940d6eb5d85662305ba979ee0b20971d43eaf3a3d3929e7fcfca32b3caac42",
+    "infer_source_sha256": "ecd5c974280574145ff4dbd958754fb3f80d322c4fb7e9ff0d161b6977b1f8bd",
+    "device": "cpu-only",
+    "threads": 8,
+    "prompt_batch": 32,
+    "logit_dumping": true
+  },
+  "limitations": [
+    "Three short authored cases/repetitions; no production quality claim and no useful p95 estimate.",
+    "Fresh processes, uncontrolled file cache; no cache purge or CPU/GPU paired rerun.",
+    "Historic one-shot executable, not a remeasurement of the persistent worker.",
+    "Working set, private commitment, virtual mappings and OS cache overlap and are not additive.",
+    "No GPU initialized or queried in CPU runs; no power/electricity cost measurement."
+  ],
+  "records": [
+    {
+      "run_id": "CPU-only-Q4-batch32-short-rep1",
+      "repetition": 1,
+      "return_code": 0,
+      "context_tokens": 4096,
+      "output_tokens": 32,
+      "prompt_sha256": "a0a089176f086ea177915bdcb7b418d9930ff77b8ecec9044e93d8acb5dc2916",
+      "end_to_end_s": 16.836218000011286,
+      "ttft_internal_s": 7.115668,
+      "prompt_tokens_per_s": 12.34,
+      "decode_tokens_per_s": 4.313729353725974,
+      "peak_process_working_set_bytes": 10086961152,
+      "sampled_peak_private_commit_bytes": 1224609792
+    },
+    {
+      "run_id": "CPU-only-Q4-batch32-short-rep2",
+      "repetition": 2,
+      "return_code": 0,
+      "context_tokens": 4096,
+      "output_tokens": 32,
+      "prompt_sha256": "a0a089176f086ea177915bdcb7b418d9930ff77b8ecec9044e93d8acb5dc2916",
+      "end_to_end_s": 33.84096060000593,
+      "ttft_internal_s": 8.571492,
+      "prompt_tokens_per_s": 4.18,
+      "decode_tokens_per_s": 1.353514242329601,
+      "peak_process_working_set_bytes": 10086989824,
+      "sampled_peak_private_commit_bytes": 1224753152
+    },
+    {
+      "run_id": "CPU-only-Q4-batch32-short-rep3",
+      "repetition": 3,
+      "return_code": 0,
+      "context_tokens": 4096,
+      "output_tokens": 32,
+      "prompt_sha256": "a0a089176f086ea177915bdcb7b418d9930ff77b8ecec9044e93d8acb5dc2916",
+      "end_to_end_s": 21.830659700004617,
+      "ttft_internal_s": 8.428046,
+      "prompt_tokens_per_s": 4.01,
+      "decode_tokens_per_s": 3.2450066256754635,
+      "peak_process_working_set_bytes": 10087030784,
+      "sampled_peak_private_commit_bytes": 1224695808
+    }
+  ]
+}

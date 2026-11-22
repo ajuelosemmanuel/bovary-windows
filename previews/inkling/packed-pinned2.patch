@@ -1,0 +1,85 @@
+diff --git a/src/bovary-stream.h b/src/bovary-stream.h
+--- a/src/bovary-stream.h
++++ b/src/bovary-stream.h
+@@ -91,6 +91,7 @@
+     struct packed_layer { size_t offset, stride, gate_up, down; };
+     std::unordered_map<std::string, packed_layer> packed_layers;
+     size_t packed_experts = 0;
++    size_t packed_record_max = 0;
+ 
+     bool packed() const { return !packed_layers.empty(); }
+ 
+@@ -123,12 +124,14 @@
+                 throw std::runtime_error("packed streaming layout overflows file offsets");
+             }
+             packed_layers.emplace(gate_name, packed_layer { offset, stride, gate_bytes, down_bytes });
++            packed_record_max = std::max(packed_record_max, stride);
+             offset += packed_experts * stride;
+         }
+         return offset;
+     }
+ 
+     bovary_stream_reader(ggml_backend_t backend) {
++        const std::string sidecar = bovary_stream_path_environment("BOVARY_STREAM_PACKED");
+         if (const char * value = std::getenv("BOVARY_STREAM_BUFFER_MIB")) {
+             char * end = nullptr;
+             const unsigned long mib = std::strtoul(value, &end, 10);
+@@ -142,8 +145,10 @@
+             else if (std::strcmp(pool, "serial") != 0)
+                 throw std::runtime_error("BOVARY_STREAM_POOL must be serial or pinned2");
+         }
+-        if (pinned2 && capacity > 8 * 1024 * 1024)
+-            throw std::runtime_error("pinned2 accepts at most 8 MiB per slot, 16 MiB total");
++        const size_t max_pinned_mib = sidecar.empty() ? 8 : 10;
++        if (pinned2 && capacity > max_pinned_mib * 1024 * 1024) {
++            throw std::runtime_error("pinned2 accepts at most " + std::to_string(max_pinned_mib) + " MiB per slot for this layout");
++        }
+         const std::string path = bovary_stream_path_environment("BOVARY_STREAM_MODEL");
+         if (path.empty()) {
+             throw std::runtime_error("BOVARY_STREAM_MODEL must name the loaded single GGUF");
+@@ -169,7 +174,6 @@
+         if (mode && *mode && std::strcmp(mode, "unbuffered") && std::strcmp(mode, "buffered")) {
+             throw std::runtime_error("BOVARY_STREAM_IO must be buffered or unbuffered");
+         }
+-        const std::string sidecar = bovary_stream_path_environment("BOVARY_STREAM_PACKED");
+         const size_t packed_size = sidecar.empty() ? 0 : initialize_packed_layout(meta.get());
+         file = CreateFileW(std::filesystem::u8path(sidecar.empty() ? path : sidecar).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+                           FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS | (direct ? FILE_FLAG_NO_BUFFERING : 0), nullptr);
+@@ -199,12 +203,10 @@
+             throw std::runtime_error("packed stream length or device alignment does not match its GGUF layout");
+         }
+         if (packed()) {
+-            for (const auto & item : packed_layers) {
+-                if (item.second.stride > capacity || pinned2) {
+-                    CloseHandle(file);
+-                    file = INVALID_HANDLE_VALUE;
+-                    throw std::runtime_error("Inkling packed streaming requires a serial buffer of at least 9 MiB");
+-                }
++            if (packed_record_max > capacity) {
++                CloseHandle(file);
++                file = INVALID_HANDLE_VALUE;
++                throw std::runtime_error("Inkling packed streaming requires at least 9 MiB per slot");
+             }
+         } else {
+             for (const auto & item : weights) {
+@@ -217,6 +219,11 @@
+         try {
+             if (pinned2) {
+                 initialize_pinned_pool(backend);
++                for (const auto & slot : slots) {
++                    if (packed_record_max > slot.usable) {
++                        throw std::runtime_error("aligned pinned2 slot does not fit the largest packed expert record");
++                    }
++                }
+             } else {
+                 buffer = VirtualAlloc(nullptr, capacity, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+                 if (!buffer) throw std::runtime_error("cannot allocate bounded streaming buffer");
+@@ -294,7 +301,7 @@
+             read_buffer = slot->data;
+             usable = slot->usable;
+         }
+-        if (layer.stride > usable) GGML_ABORT("packed streaming buffer is smaller than an expert record; use serial with at least 9 MiB");
++        GGML_ASSERT(layer.stride <= usable);
+         LARGE_INTEGER position;
+         position.QuadPart = layer.offset + layer.stride * expert;
+         DWORD received = 0;

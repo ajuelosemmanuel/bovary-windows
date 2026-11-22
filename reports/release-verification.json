@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "checked_date": "2026-11-14",
+  "scope": "Source, build, packaging and control checks; not model-quality qualification",
+  "engine": {
+    "repository": "https://github.com/ggml-org/llama.cpp.git",
+    "revision": "2a4daf0e08d6a9b6993ee0d4a9a3cfc35a6f405c",
+    "patch_sha256": "0828ddcc77cbb480b0b2742e0560bae4df59c5774b9a1e8a7c65ad03c02922fa",
+    "fresh_public_network_fetch_and_patch": true,
+    "repeated_offline_check": true,
+    "fresh_local_source_checkout_build": true,
+    "weights_downloaded_for_these_checks": false
+  },
+  "cpu_artifact": {
+    "path": "work/build/source-release/lowcost-infer.exe",
+    "bytes": 4713984,
+    "sha256": "093761e06e7a7a7cd420b78e5e22867c153fcd38eb1281391cefad50748757c7",
+    "compiler": "MSVC 19.51.36260 x64",
+    "fresh_build_targets_completed": 85,
+    "parallel_jobs": 2,
+    "cpu_only": true,
+    "cuda_enabled": false,
+    "no_model_smoke_passed": true,
+    "ascii_and_utf16_private_build_path_scan_passed": true,
+    "path_mapping": "/experimental:deterministic and /pathmap with native Windows path prefix",
+    "provenance": "outputs/workbench-mapped-build-final-metadata-20261114/build-manifest.json",
+    "gpu_dlls_bundled": false,
+    "models_bundled": false,
+    "legacy_logit_bytes_compared_exactly": 7340032,
+    "legacy_token_ids_equal": true
+  },
+  "python_wheel": {
+    "filename": "lowcostgemma-0.2.0a1-py3-none-any.whl",
+    "sha256": "1efaf26dbf102c8c1f544118a7f6b1c9c62ea65c95fcfcc0ecdb3b3944e3ba06",
+    "build_tools": {
+      "setuptools": "80.9.0",
+      "wheel": "0.45.1"
+    },
+    "package_bytes_match_source": true,
+    "readme_metadata_matches_source": true,
+    "license_notice_entries": 10,
+    "isolated_target_install": true,
+    "suggest_from_empty_working_directory_passed": true,
+    "native_executable_in_wheel": false
+  },
+  "public_source": {
+    "boundary": "public-files.txt",
+    "models_credentials_raw_runs_and_personal_paths_excluded": true,
+    "binary_and_text_diff_applied_byte_for_byte_to_empty_directory": true,
+    "root_git_repository_or_remote_created": false,
+    "autocrlf_clone_preserves_pinned_patch_digest": true
+  },
+  "remaining_release_gates": [
+    "Owner approval of project license and copyright identity",
+    "Clean-machine GUI/runtime installation validation; Python/Tk and MSVC/OpenMP remain prerequisites",
+    "Actual hosted CI execution after an authorized remote exists",
+    "Explicitly scheduled GPU hardware validation before GPU runtime claims",
+    "Provider/account/data/spending authorization and retained representative paired evidence before paid evaluation or Auto qualification",
+    "Explicit publication approval"
+  ],
+  "live_provider_requests": 0,
+  "auto_enabled": false,
+  "uploaded_or_published": false,
+  "cuda_build": {
+    "compile_passed": true,
+    "protocol_parser_passed": true,
+    "cpu_only_guard_rejected_before_backend_init": true,
+    "gpu_inference_or_telemetry_validated": false,
+    "binary_bundled": false
+  },
+  "measured_cpu_diagnostic": {
+    "dataset_id": "authored-three-case-local-smoke-v2",
+    "cases": 3,
+    "correct": 2,
+    "false_acceptances": 0,
+    "extraction": "malformed JSON rejected as needs_review",
+    "representative": false,
+    "held_out": false,
+    "auto_qualified": false
+  },
+  "unit_tests_passed": 86
+}

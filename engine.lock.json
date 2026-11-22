@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/ggml-org/llama.cpp.git",
+  "revision": "2a4daf0e08d6a9b6993ee0d4a9a3cfc35a6f405c",
+  "patch": "patches/llama-streaming.patch",
+  "patch_sha256": "2061bc19a9a7f27451cb10da1f9730e5dec8ab8bc4cb0692a5c3ba100af46e24"
+}

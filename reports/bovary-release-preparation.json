@@ -1,0 +1,333 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-17",
+  "name": "Bovary",
+  "slug": "bovary",
+  "version": "0.2.0a12",
+  "release_status": "Windows alpha source candidate; local tests verified; artifact verification recorded separately",
+  "scope": "Local Windows alpha source only; unpublished",
+  "environment": {
+    "interpreter": ".venv/Scripts/python.exe",
+    "python_version": "3.13.1",
+    "build_requirements": "requirements-build.txt",
+    "setuptools": "80.9.0",
+    "wheel": "0.45.1",
+    "install_command": ".venv/Scripts/python.exe -m pip install -r requirements-build.txt"
+  },
+  "checks": {
+    "test_count": 226,
+    "passed": 226,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "private_test_log": "work/readiness-suite-verified.log",
+    "test_log_sha256": "f092110faec7a7449db82fc6107640bdd887474e5d94a4b18d17db4705e4f4ec",
+    "repetitions": {
+      "closed_stdin": 100,
+      "downloader_owner_death": 100,
+      "passed": 200,
+      "skipped": 0,
+      "log": "work/readiness-repetitions-verified.log"
+    },
+    "distribution_tests": {
+      "passed": 9,
+      "skipped": 0,
+      "log": "work/readiness-distribution-verified.log"
+    },
+    "native_tests": {
+      "passed": 3,
+      "skipped": 0,
+      "log": "work/readiness-native-tests.log"
+    },
+    "public_allowlist_files": 117,
+    "sanity_scan_passed": true,
+    "final_artifact_results": "See separate candidate verification.json"
+  },
+  "fixes": {
+    "closed_stdin": {
+      "cause": "Windows venv redirector retains a pipe read handle after the fixture interpreter closes fd 0. A small request write succeeds and the five-second fixture sleep races the five-second request deadline.",
+      "demonstration": {
+        "path": "work/readiness-pipe-diagnosis.log",
+        "sha256": "627c787527eeb00303f59984df66018fd449e06559c081b5aab840170c757f6e"
+      },
+      "original_failure": {
+        "path": "work/readiness-worker-before.log",
+        "sha256": "ed96c49d3150b4c256358f03194ac827d40c3e8836bf238963515190b5963f68"
+      },
+      "fix": "Launch this standard-library-only worker fixture with sys._base_executable. Keep worker_crashed, structured attempt, process/pipe/thread/lock cleanup and next-request recovery assertions; additionally require completion before the sleep ends.",
+      "runtime_changed": false
+    },
+    "downloader_lock": {
+      "cause": "Popen targets the Windows venv redirector; kill/wait for it does not synchronize with the separate lock-owning interpreter termination. Job cleanup is asynchronous; this is real temporary contention, not a stale lock file.",
+      "before_repetitions": {
+        "runs": 30,
+        "errors": 6,
+        "log": {
+          "path": "work/readiness-lock-before.log",
+          "sha256": "856c3ea7736f409988c3f453b992a5fe994c3238fe71b1eb25da0ab07e48678e"
+        }
+      },
+      "ownership_probe": {
+        "runs": 50,
+        "owner_unsignaled_after_launcher_wait": 50,
+        "lock_still_contended": 5,
+        "all_acquired_after_actual_owner_wait": true,
+        "log": {
+          "path": "work/readiness-owner-wait-diagnosis.json",
+          "sha256": "4c6bf590b8a9bf28bc58a159786203818b39aca6eece7f5e8f639fa99224c4e7"
+        }
+      },
+      "fix": "Launch the actual base interpreter, flush its PID before readiness, assert PID equals Popen.pid, then kill/wait for that owner. No lock retries, file deletion or runtime changes.",
+      "runtime_changed": false
+    },
+    "release_evidence": {
+      "cause": "Prior all-pass claim was not reproducible; active venv lacked pinned build tools.",
+      "fix": "Install requirements-build.txt in the documented interpreter, repeat regressions, run full suite without skips and rebuild into fresh a12 paths. Archive original a11 record as historical."
+    }
+  },
+  "historical_a11": {
+    "status": "Superseded by reproduced audit failures; not current release proof",
+    "original_record": "outputs/bovary-a12-readiness-20261117/historical-a11-release-preparation.json",
+    "original_record_sha256": "7b49d8151aeb65427521d2c86748491bcf67e3d155cb4e88f0adf83c35a0e771",
+    "original_claim": {
+      "test_count": 226,
+      "passed": 226,
+      "skipped": 0,
+      "private_test_log": "outputs/bovary-a11-upload-20261117/tests-frozen.txt",
+      "gui_construction_withdrawn_model_not_started": true,
+      "local_document_links_resolve": true,
+      "artifact_byte_metadata_and_installed_command_checks": "recorded in release verification.json",
+      "test_log_sha256": "8ae0524e2bf76ddfd6f78bd251e4ddf9b23a4885917917ab1154d683042e41cc",
+      "source_unchanged_during_frozen_tests": true,
+      "preflight_regression": {
+        "deadline_seconds": 1,
+        "observed_seconds": 1.006580400004168,
+        "inherited_stdout_descendant_stopped": true,
+        "real_native_protocol_probe_passed": true,
+        "model_or_gpu_started": false,
+        "evidence_release": "0.2.0a10"
+      },
+      "readme_setup_and_api_independently_reviewed": true
+    },
+    "audit_result": {
+      "tests": 226,
+      "passed": 223,
+      "failures": 1,
+      "errors": 1,
+      "skipped": 1
+    }
+  },
+  "native_source_changed": false,
+  "runtime_implementation_changed": false,
+  "native_cpu_binary_sha256": "e0e157db53f9b529ad1de868bd184c1f0695e65c57fd1f35fd400db7e96c6a41",
+  "native_cpu_verification": {
+    "scope": "Inherited a7 build and runtime results; new a12 freshness/no-model capture only",
+    "inherited_a7": {
+      "build_manifest": "outputs/bovary-release-fixes-20261115/build-proof/build-manifest.json",
+      "cpu_only": true,
+      "path_sanitized": true,
+      "build_freshness_checked": true,
+      "engine_patch_sha256": "2bd46da700a6a4a416208e090cf151604ed32db0feee5fa21c824645e3c2bbc2",
+      "numerical_comparison": {
+        "full_vocabulary_rows": 7,
+        "compared_float32_bytes": 7340032,
+        "byte_identical_to_prior_verified_baseline": true,
+        "token_ids_equal": true,
+        "logits_sha256": "2e2885396f9f52524841eeed92ee3b5dfd5c7418a37c962fc960997322c8ed4d",
+        "context": 2048,
+        "threads": 2,
+        "prompt_batch": 32
+      },
+      "unicode_paths": {
+        "windows_ansi_code_page": 1252,
+        "model_executable_prompt_metrics_logits_paths_succeeded": true,
+        "hebrew_accent_emoji_test_fixture_passed": true,
+        "wide_environment_and_trace_fixture_passed": true,
+        "model_full_sha256_verified": true,
+        "verified_model_bytes": 14618145824,
+        "model_payload_copied": false,
+        "verification_manifest_unchanged_after_runs": true
+      },
+      "worker": {
+        "hello_validator_passes": 3,
+        "warm_pid_reused": true,
+        "cancellation_partial_text_retained": true,
+        "cancelled_worker_unloaded": true,
+        "recovery_new_pid_and_validation_passed": true,
+        "unloaded": true
+      },
+      "private_numerical_check": "outputs/bovary-release-fixes-20261115/numerical-check.json",
+      "private_unicode_cpu_check": "outputs/bovary-release-fixes-20261115/unicode-cpu-check.json",
+      "scope": "Authored CPU functional/numerical regression on one Windows host; no representative quality, latency, cost or GPU qualification.",
+      "evidence_release": "0.2.0a7",
+      "native_binary_reused": true,
+      "model_inference_rerun_in_a8": false,
+      "model_inference_rerun_in_a9": false,
+      "model_inference_rerun_in_a10": false,
+      "model_inference_rerun_in_a11": false
+    },
+    "current_capture": "outputs/bovary-a12-readiness-20261117/native-capture/build-manifest.json",
+    "current_native_tests": {
+      "passed": 3,
+      "skipped": 0,
+      "log": "work/readiness-native-tests.log"
+    },
+    "engine_check": "work/readiness-engine.log",
+    "protocol_marker": "bovary-worker 2"
+  },
+  "inherited_model_quality_evidence": {
+    "scope": "Historical a7 numerical/lifecycle and a6 authored diagnostic evidence only. No new model or GPU inference performed; no representative quality, cost or performance qualification.",
+    "historical_a6_diagnostic": {
+      "version": "0.2.0a6",
+      "until_finished": {
+        "long_answer_tokens": 229,
+        "numbers_1_through_60_exact": true,
+        "finish_reason": "eos",
+        "exceeded_previous_default_128": true,
+        "warm_worker_reused": true,
+        "short_cap_tokens": 8,
+        "short_cap_finish_reason": "token_limit",
+        "short_cap_status": "truncated",
+        "context_limit": {
+          "context_tokens": 64,
+          "input_tokens": 24,
+          "output_tokens": 40,
+          "status": "truncated",
+          "finish_reason": "context_limit",
+          "not_graded": true
+        },
+        "deadline_stopped_and_unloaded": true,
+        "cancel_stopped_and_unloaded": true,
+        "deadline_partial_answer_retained": true,
+        "cancel_partial_answer_retained": true,
+        "recovery_hello_passes": 2,
+        "real_cli_unlimited_eos": true,
+        "unloaded": true
+      },
+      "authored_semantic_diagnostic": {
+        "cases": 3,
+        "passed": 2,
+        "needs_review": 1,
+        "outcomes": [
+          {
+            "case": "extract-simple",
+            "passed": false,
+            "status": "needs_review"
+          },
+          {
+            "case": "classify-negation",
+            "passed": true,
+            "status": "complete"
+          },
+          {
+            "case": "format-sort",
+            "passed": true,
+            "status": "complete"
+          }
+        ],
+        "finding": "Extract-simple returned correct fields inside Markdown JSON fences, violating the strict JSON-only format. Validator rejected it; no acceptance was claimed."
+      },
+      "scope": "Retained earlier authored results; the a7 run below is a fresh Unicode/numerical/lifecycle regression."
+    }
+  },
+  "artifacts": {
+    "fresh_build": "work/release-build-bovary-a12-20261117",
+    "fresh_review": "work/release-review/bovary-0.2.0a12-20261117",
+    "verification": "work/release-review/bovary-0.2.0a12-20261117/verification.json",
+    "note": "Only fresh a12 artifacts can contain these fixture/documentation fixes. Exact artifact hashes and installed checks are recorded in the separate verification file to avoid self-referential source hashes."
+  },
+  "auto_execution_enabled": false,
+  "live_provider_requests": 0,
+  "models_or_gpu_dlls_bundled": false,
+  "root_git_created": false,
+  "published_or_uploaded": false,
+  "remaining_external_gates": [
+    "Hosting account/visibility and explicit publication approval",
+    "Actual hosted CI after authorized remote setup",
+    "Clean-machine GUI/runtime installation validation",
+    "GPU inference validation before GPU runtime claims",
+    "Approved provider/account/data/budget and representative runtime-bound evaluation before live/Auto qualification"
+  ],
+  "upload_readiness": {
+    "scope": "Clearly labeled Windows alpha source repository",
+    "local_test_blockers": [],
+    "artifact_results": "See separate candidate verification.json",
+    "hosted_ci_executed": false,
+    "clean_desktop_install_tested": false,
+    "gpu_inference_tested": false,
+    "live_provider_qualification": false,
+    "actual_upload_performed": false
+  },
+  "project_license": {
+    "spdx": "MIT",
+    "notice": "Copyright (c) 2026 Bovary contributors",
+    "license_sha256": "ab95afdf313d8bc0364b373d8375c2f086ee8494ebc12c90b0b720a51ad66fb3",
+    "owner_authorized_selection": true,
+    "third_party_licenses_preserved": true,
+    "model_and_proprietary_runtime_terms_separate": true
+  },
+  "public_interface": {
+    "python_distribution": "bovary",
+    "implementation_package": "bovary",
+    "commands": [
+      "bovary",
+      "bovary-settings"
+    ],
+    "source_launcher": "Bovary.cmd",
+    "configuration_prefix": "BOVARY_",
+    "settings_path": "work/bovary-settings.json",
+    "native_targets": [
+      "bovary-infer",
+      "bovary-quantize"
+    ],
+    "worker_protocol": "bovary-worker 2",
+    "legacy_namespaces_commands_environment_fallbacks": false,
+    "local_until_finished": {
+      "api_output_tokens": null,
+      "cli": [
+        "--until-finished",
+        "--tokens unlimited"
+      ],
+      "gui": "Until finished",
+      "default_numeric_limit": 128,
+      "requires_deadline": true,
+      "commercial_or_escalation_supported": false,
+      "finite_stops": [
+        "model_end",
+        "context_limit",
+        "deadline",
+        "cancellation"
+      ],
+      "cap_result_status": "truncated"
+    }
+  },
+  "development_verification_attempts": [
+    {
+      "log": "work/readiness-suite-initial.log",
+      "tests": 226,
+      "passed": 224,
+      "errors": 2,
+      "skipped": 0,
+      "reason": "Sandbox MSYS NtCreateDirectoryObject access denied; unrestricted full suites passed."
+    },
+    {
+      "log": "work/readiness-suite-unrestricted.log",
+      "tests": 226,
+      "passed": 226,
+      "skipped": 0,
+      "note": "Before final readiness synchronization edit; subsequent final suite also passed."
+    },
+    {
+      "log": "work/readiness-repetitions.log",
+      "tests": 200,
+      "failures": 100,
+      "reason": "An added message-text assertion incorrectly assumed a pipe-specific message; Windows CRT reports Invalid argument. Removed that new assertion; worker_crashed and cleanup assertions retained, added prompt failure bound."
+    },
+    {
+      "log": "work/readiness-repetitions-final.log",
+      "tests": 200,
+      "errors": 1,
+      "reason": "Transient Windows sharing error reading the atomically renamed readiness file; PID now travels through stdout before readiness."
+    }
+  ]
+}

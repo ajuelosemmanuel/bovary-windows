@@ -1,0 +1,49 @@
+{
+  "llama_cpp": {
+    "repository": "https://github.com/ggml-org/llama.cpp",
+    "tag": "b12600",
+    "commit": "29b52d398b294509746ec0a3f28948a3107c0213",
+    "archive": "https://codeload.github.com/ggml-org/llama.cpp/zip/refs/tags/b12600",
+    "sha256": "2aa62631674e14d7be98feb8105f5681d4a51ab627a14e35101aa6a8d73fede6"
+  },
+  "patches": [
+    {"name": "llama-b12600-inkling-stream.patch", "strip": 1, "sha256": "e474cd1bb8d9c433f4a82890736bde9e725dd482b9098f8ee198d0defb6f9f07"},
+    {"name": "packed-pinned2.patch", "strip": 1, "sha256": "86b59f4ecc277dfb75f531e5dcba87d603a984141055e273da226143fa1b9c39"},
+    {"name": "physical-reserve.patch", "strip": 2, "sha256": "214a1602545c1912c399388ba5b80c629a2eea939a72c658b9453b2bab4cd3c9"}
+  ],
+  "cuda_archives": {
+    "llama-b12600-bin-win-cuda-13.5-x64.zip": {
+      "sha256": "6c3d4724732b1a520e7e100585a0928e5a27521cd6d022fbab4b573dd1c0b52a",
+      "files": ["ggml-cuda.dll"]
+    },
+    "cudart-llama-bin-win-cuda-13.5-x64.zip": {
+      "sha256": "c2bf4cc202bfbaaa7a0b75f5082457c3811326947bb216059b72839d844e9cba",
+      "files": ["cudart64_13.dll", "cublas64_13.dll", "cublasLt64_13.dll"]
+    }
+  },
+  "model": {
+    "repository": "ggml-org/Inkling-2-Mini-GGUF",
+    "revision": "db61c5b492a6a034d986328d28274af0a439aa6c",
+    "filename": "Inkling-2-Mini-IQ4_NL.gguf",
+    "bytes": 17627940768,
+    "sha256": "cbdf3fa9dc50a4124977980f37da4f1fa764b0cfe800d275cd43d26ce2a81af4",
+    "packed_bytes": 15804137472,
+    "packed_sha256": "b84866919f69ea2ba29f32dfdd96b22da19bbd7353efdaacbd3d3f53761bfe55"
+  },
+  "preview_source": {
+    "infer.cpp": "ed124fd7ac85a8aa4251a31bf14eb859e576373236ea9f7984d2c41f94e6e1ec",
+    "native_paths.h": "78b757f1c3804cb447b371c514bf93d405b50ed8c0b51c7889aae4cc8ddcd289"
+  },
+  "measured_worker_source_sha256": "c734795ad14cf5d9469dbac1223ee1a2cbfe91c8426571869dfe3e9a13820ac5",
+  "patched_engine_source": {
+    "src/bovary-stream.h": "a9f59d6060d649e272e81cd74cdbb662f2b8cc13a324aa760cab42cc96efad3b",
+    "src/llama-context.cpp": "e2141e24535f0425db1b6b3a416bfa14442aa57366a47bd8c443bb2c76657436",
+    "src/llama-model-loader.cpp": "4795fc2ba6c1f2376c1be3305e55838d352fadfb78352c9816511f8150abcbd6",
+    "src/llama-moe-cache.cpp": "eea5802291d209adfa158fba881123c4933d85ebb3913950f67da91d753d5742",
+    "src/llama-moe-cache.h": "b4764a08ab4ecb7512ee931cfa7460b26c988f4c00600f1338a862d4c1031e7f"
+  },
+  "measured_reference_binaries": {
+    "bovary-infer.exe": "1b992c1ac62390e97697daae5b75e4c9c93b79afec03a741a21fa2fd1918973e",
+    "llama.dll": "c8fa5375ba16489c985e464ff07ce9a4fd6db6a794c6ce257938354a6d05c6f4"
+  }
+}

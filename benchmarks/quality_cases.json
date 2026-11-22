@@ -1,0 +1,12 @@
+[
+  {"id":"arithmetic","question":"What is 17 multiplied by 6? A) 92 B) 102 C) 112 D) 116","answer":"B"},
+  {"id":"logic","question":"All cedars are trees. Some trees are evergreen. Must all cedars be evergreen? A) Yes B) No cedar can be evergreen C) Only in winter D) The statements do not establish that","answer":"D"},
+  {"id":"python_alias","question":"In Python: a = [1, 2]; b = a; b.append(3). What is len(a)? A) 1 B) 2 C) 3 D) An exception occurs","answer":"C"},
+  {"id":"probability","question":"A fair six-sided die is rolled once. What is the probability of a result greater than 4? A) 1/3 B) 1/2 C) 2/3 D) 1/6","answer":"A"},
+  {"id":"physics","question":"Why does the clear daytime sky usually appear blue? A) It reflects ocean water B) Air preferentially scatters shorter visible wavelengths C) Oxygen emits only blue light D) Blue light travels more slowly","answer":"B"},
+  {"id":"grammar","question":"Choose the standard English verb: Each of the students ___ a book. A) have B) are having C) were D) has","answer":"D"},
+  {"id":"algorithms","question":"Which is the tightest listed asymptotic bound on worst-case comparisons for binary search in a sorted array of n items? A) O(n squared) B) O(n) C) O(log n) D) O(1)","answer":"C"},
+  {"id":"time","question":"A trip takes 20 minutes by bus followed by a 7-minute walk, with no waiting. To arrive by 10:00, what is the latest departure? A) 09:33 B) 09:30 C) 09:40 D) 09:27","answer":"A"},
+  {"id":"linear_algebra","question":"What is the determinant of the matrix with rows [3, 1] and [2, 4]? A) 14 B) 10 C) 5 D) 12","answer":"B"},
+  {"id":"reading","question":"A library opens at 09:00 Tuesday through Saturday, opens at 12:00 Sunday, and is closed Monday. Tomorrow is Sunday. When does it open tomorrow? A) 09:00 B) It is closed C) 10:00 D) 12:00","answer":"D"}
+]
