@@ -24,16 +24,22 @@ Here’s the recorded answer from one fresh Windows CPU run. It took **22.66 sec
 
 ## Try it on your laptop
 
-After [CPU setup](#install-the-windows-alpha-from-release-files), run the same prompt in the configured PowerShell session.
+After [CPU setup](#install-the-windows-alpha-from-release-files), run the same prompt in the configured PowerShell session. The JSON includes the status, answer text, and any reported error.
 
 ```powershell
-.\.venv\Scripts\bovary.exe mini --tokens 128 --json --prompt "Turn this school fair planning note into a short checklist. Keep each owner and deadline. Mark the undecided item as open. Do not invent details. Note: Sam will book the hall by Tuesday. Lee offered to print the posters by Friday. We still need someone to bring the folding tables." |
-    ConvertFrom-Json | Format-List text, elapsed_s
+$prompt = 'Turn this school fair planning note into a short checklist. Keep each owner and deadline. Mark the undecided item as open. Do not invent details. Note: Sam will book the hall by Tuesday. Lee offered to print the posters by Friday. We still need someone to bring the folding tables.'
+.\.venv\Scripts\bovary.exe mini --tokens 128 --json --prompt $prompt | ConvertFrom-Json | Format-List status, text, elapsed_s, error, message
 ```
 
-Check that Sam still has the hall by Tuesday, Lee has the posters by Friday, and the folding tables remain open without an invented owner or deadline. Wording can vary.
+On a 2-vCPU Windows Server test, the arithmetic smoke test took about 89 seconds and the checklist stopped after about 180 seconds. Mini allows three minutes per request. If the arithmetic test takes a minute or more, you can go straight to the longer command below using the same prompt. It uses two threads and allows up to 20 minutes for the request. The JSON appears when the command finishes.
 
-If you’re in the private pilot, share your hardware, the reported `elapsed_s`, and which details the answer kept. If setup stopped you, include the step and a redacted error. [Report your laptop results privately](https://github.com/ajuelosemmanuel/bovary-windows/issues/new?title=%5BWindows%20review%5D%20School%20fair%20checklist&body=Laptop%20model%3A%0ACPU%20or%20GPU%3A%0ARAM%3A%0ARuntime%20profile%20%28CPU%20or%20CUDA%29%3A%0AReported%20elapsed_s%3A%0A%0AChecklist%20results%0A-%20Sam%20books%20the%20hall%20by%20Tuesday%3A%0A-%20Lee%20prints%20the%20posters%20by%20Friday%3A%0A-%20The%20folding%20tables%20remain%20open%20without%20a%20new%20owner%20or%20deadline%3A%0A%0AFirst%20setup%20blocker%2C%20if%20any%20%28step%20and%20redacted%20error%29%3A%0A)
+```powershell
+.\.venv\Scripts\bovary.exe --mode local --offline --preset cpu-only --threads 2 --context 2048 --tokens 128 --deadline-s 1200 --json --prompt $prompt
+```
+
+Check for a complete result. Sam should still have the hall by Tuesday, Lee should have the posters by Friday, and the folding tables should remain open without an invented owner or deadline. Wording can vary.
+
+If you’re in the private pilot, share your hardware, which command you used, the status, and which details the answer kept. Use `elapsed_s` from Mini or `timing.end_to_end_s` from the longer command. If a step failed, include that step and a redacted error. [Report your laptop results privately](https://github.com/ajuelosemmanuel/bovary-windows/issues/new?title=%5BWindows%20review%5D%20School%20fair%20checklist&body=Laptop%20model%3A%0ACPU%20or%20GPU%3A%0ARAM%3A%0ACommand%20used%20%28Mini%20or%20longer%20CPU%20command%29%3A%0AStatus%3A%0AElapsed%20seconds%3A%0A%0AChecklist%20results%0A-%20Sam%20books%20the%20hall%20by%20Tuesday%3A%0A-%20Lee%20prints%20the%20posters%20by%20Friday%3A%0A-%20The%20folding%20tables%20remain%20open%20without%20a%20new%20owner%20or%20deadline%3A%0A%0AFirst%20setup%20blocker%2C%20if%20any%20%28step%20and%20redacted%20error%29%3A%0A)
 
 ## Measured speed and memory on a 6 GB GPU
 
