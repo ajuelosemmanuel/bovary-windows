@@ -89,7 +89,7 @@ jobs:
           Write-Host "Checkpoint verified with SHA256 $($proof.sha256)."
           @("BOVARY_HOME=$env:BOVARY_HOME", "BOVARY_MODEL=$env:BOVARY_MODEL", "BOVARY_MODEL_MANIFEST=$env:BOVARY_MODEL_MANIFEST") |
             Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-      - name: Run doctor and both README Mini tasks
+      - name: Run doctor, Mini arithmetic and slow CPU checklist
         run: |
           Set-Location -LiteralPath $env:BOVARY_TRIAL_ROOT
           $PSNativeCommandUseErrorActionPreference = $false
@@ -110,13 +110,34 @@ jobs:
           Write-Host ('README arithmetic: 45 ({0:N2} seconds wall-clock)' -f $timer.Elapsed.TotalSeconds)
 
           $prompt = 'Turn this school fair planning note into a short checklist. Keep each owner and deadline. Mark the undecided item as open. Do not invent details. Note: Sam will book the hall by Tuesday. Lee offered to print the posters by Friday. We still need someone to bring the folding tables.'
-          $answer = & $exe mini --tokens 128 --json --prompt $prompt 2> $null
-          if ($LASTEXITCODE -ne 0) { throw 'README checklist process failed.' }
-          $row = $answer | ConvertFrom-Json
-          if ($row.status -ne 'complete' -or $row.cache_hit -ne $false -or $row.model_calls -ne 1 -or $row.elapsed_s -le 0) {
-            throw 'README checklist returned an incomplete or unexpected result.'
+          $stderr = Join-Path $env:BOVARY_TRIAL_ROOT 'checklist-stderr.log'
+          $timer.Restart()
+          $answer = & $exe --mode local --offline --preset cpu-only --threads 2 --context 2048 --tokens 128 --deadline-s 1200 --json --prompt $prompt 2> $stderr
+          $checklistExit = $LASTEXITCODE
+          $timer.Stop()
+          $row = ($answer -join "`n") | ConvertFrom-Json -ErrorAction SilentlyContinue
+          if ($checklistExit -ne 0 -or $row.status -ne 'complete') {
+            $failure = $row
+            if (!$failure) {
+              $failure = Get-Content -LiteralPath $stderr | Select-Object -Last 1 | ConvertFrom-Json -ErrorAction SilentlyContinue
+            }
+            $status = [string]$failure.status
+            $code = [string]$failure.error.code
+            if ($status -notmatch '^[a-z][a-z_]{0,39}$') { $status = 'unavailable' }
+            if ($code -notmatch '^[a-z][a-z_]{0,63}$') { $code = 'unavailable' }
+            if ($row.text) { Write-Host $row.text }
+            throw ('Offline CPU checklist failed (exit {0}, status {1}, error {2}, wall {3:N2} s).' -f
+              $checklistExit, $status, $code, $timer.Elapsed.TotalSeconds)
           }
-          Write-Host ('README checklist ({0:N2} seconds reported, no cache hit):' -f $row.elapsed_s)
+          $attempt = @($row.attempts)
+          if ($row.destination -ne 'local' -or $attempt.Count -ne 1 -or $attempt[0].destination -ne 'local' -or
+              $attempt[0].status -ne 'complete' -or $attempt[0].timing.warm -ne $false -or
+              $row.usage.input_tokens -le 0 -or $row.usage.output_tokens -le 0 -or $row.usage.output_tokens -ge 128 -or
+              $row.usage.finish_reason -ne 'eos' -or $row.timing.end_to_end_s -le 0 -or [string]::IsNullOrWhiteSpace($row.text)) {
+            throw 'Offline CPU checklist returned unexpected attempt, usage or timing data.'
+          }
+          Write-Host ('Offline CPU checklist ({0:N2} s wall, {1:N2} s reported, {2} output tokens, one cold local worker):' -f
+            $timer.Elapsed.TotalSeconds, $row.timing.end_to_end_s, $row.usage.output_tokens)
           Write-Host $row.text
           $lines = @($row.text -split '\r?\n' | Where-Object { $_ -match '^\s*(?:[-*+]|\d+[.)])\s+' })
           $hall = @($lines | Where-Object { $_ -match '\bhall\b' })
