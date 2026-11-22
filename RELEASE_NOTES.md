@@ -1,6 +1,6 @@
-# Bovary 0.2.0a16 Windows tester review
+# Bovary 0.2.0a16 Windows alpha
 
-Use a GitHub account with tester access to download the wheel, Windows x64 CPU runtime ZIP, and SHA256SUMS.txt from the [review release](https://github.com/ajuelosemmanuel/bovary-windows/releases/tag/v0.2.0a16). Follow the [quick start](README.md#install-the-windows-alpha-from-release-files) to check the downloads, verify the separately supplied Gemma checkpoint, and try an offline Mini request. The CPU worker requires AVX2/FMA.
+Download the wheel, Windows x64 CPU runtime ZIP, and SHA256SUMS.txt from the [Windows alpha release](https://github.com/ajuelosemmanuel/bovary-windows/releases/tag/v0.2.0a16). Follow the [quick start](README.md#install-the-windows-alpha-from-release-files) to check the downloads, verify the separately supplied Gemma checkpoint, and try an offline Mini request. The CPU worker requires AVX2/FMA.
 
 The code repair replay shows the 0.2.0a14 pilot. The CUDA host-cache comparison reports 0.2.0a15 measurements on an RTX 3060 laptop. CUDA testers can [build the optional worker](docs/reproducibility.md#build-and-try-the-cuda-worker) and choose the gpu-prefill-2g preset.
 
