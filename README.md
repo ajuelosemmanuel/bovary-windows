@@ -10,15 +10,17 @@ Run Gemma 26B or Inkling 2 Mini on your Windows laptop. Turn a note into a check
 
 ## Start Bovary on Windows
 
-1. Choose **Extract All** and open the extracted folder. Double-click **Start Bovary.cmd**. The launcher offers to install Python and the Microsoft runtime if needed.
-2. Choose a model below. Keep the folder on a drive with enough space for the weights.
-3. Type a question or press Enter for a sample. Type `/models` to switch and `/quit` to close. Open the same launcher next time to reuse your downloads.
+The a16 launcher requires Windows x64 and a CPU with AVX2/FMA. Inkling also needs the NVIDIA driver and SSD listed below. Initial setup uses the internet to fetch dependencies and any model you select.
+
+1. Choose **Extract All**, then double-click **Start Bovary.cmd** in the extracted folder. The launcher offers to install 64-bit Python and the Microsoft x64 Visual C++ runtime if needed.
+2. Choose a model below, or press **E** to verify and use an existing copy of the pinned Gemma checkpoint. Keep the extracted folder on a drive with enough space for the setup files and weights. The launcher saves its downloads in **Bovary Data** beside the command file.
+3. Type a question or press Enter for a sample. Type `/models` to return to the model menu and `/quit` to close. Open the launcher from the same folder to reuse your downloads.
 
 | Choose | Best fit | Download | Allow free |
 |---|---|---:|---:|
-| **G · Gemma 26B** | Everyday questions on an AVX2/FMA Windows CPU | 14.6 GB | 18 GB |
+| **G · Gemma 26B** | Everyday questions on CPU | 14.6 GB | 18 GB |
 | **I · Inkling 2 Mini** | Coding tasks on an NVIDIA GPU with a CUDA 13.5-compatible driver and a local NTFS SSD | 18.3 GB including CUDA dependencies | 39 GB |
-| **B · Both** | Try both models and switch in the same session | About 32.9 GB | 54 GB |
+| **B · Both** | Meet the Inkling requirements and switch models in the same session | About 32.9 GB | 54 GB |
 
 Inkling solved **4 of 6** tasks in our laptop coding pilot, compared with **3 of 6** for Gemma. Median time to the last answer text across those six prompts was **55 seconds for Inkling and 14 seconds for Gemma**. Speed and quality vary by task.
 
@@ -169,6 +171,7 @@ Mini repaired both selected expressions in our eight-task pilot. It also missed 
 | Keep the model warm between prompts | Start an [interactive session](docs/usage.md#interactive-mode). Use `/unload` to release its memory. |
 | Use a desktop window | Launch `.\.venv\Scripts\bovary-settings.exe` from the configured shell. [Desktop setup](docs/configuration.md#doctor-and-gui-model-setup) |
 | Stream answers from Python | Use the [Python API](docs/usage.md#python-api) and its cancellation and unload controls. |
+| Call a local model from Codex | Configure the [Bovary MCP adapter](integrations/mcp/README.md) with your installed model paths. |
 | Experiment with Inkling 2 Mini | The [developer preview](previews/inkling/README.md) has a separate CUDA worker and packed SSD layout. It can propose tokens from code in your prompt and verify them during generation. |
 
 ## Project

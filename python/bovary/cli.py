@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 
-from .contract import ExecutionError, Request
+from .contract import ExecutionError, Request, _finite_number
 from .runtime import create_workbench, project_home, load_validator
 from . import __version__
 
@@ -104,6 +104,8 @@ def main(argv=None):
         parser.error('--interactive requires local mode with cloud and escalation disabled')
     if not math.isfinite(args.deadline_s) or args.deadline_s <= 0:
         parser.error('deadline-s must be positive and finite')
+    if not _finite_number(args.max_cost_usd) or args.max_cost_usd < 0:
+        parser.error('max-cost-usd must be nonnegative and finite')
     workbench = None
     cancel = threading.Event()
     exit_code = 0
@@ -145,8 +147,14 @@ def main(argv=None):
                 request.private = True
             if args.preset == 'cpu-only':
                 request.allow_gpu = False
-            request.max_cost_usd = min(request.max_cost_usd, args.max_cost_usd)
-            request.deadline = min(request.deadline, defaults['deadline']) if request.deadline is not None else defaults['deadline']
+            # Pass invalid values through to Request.check() instead of turning
+            # them into valid caps or aborting the rest of a JSONL session.
+            if _finite_number(request.max_cost_usd):
+                request.max_cost_usd = min(request.max_cost_usd, args.max_cost_usd)
+            if request.deadline is None:
+                request.deadline = defaults['deadline']
+            elif _finite_number(request.deadline):
+                request.deadline = min(request.deadline, defaults['deadline'])
             json_output = args.json or args.session
             output_errors = []
             def event(item):

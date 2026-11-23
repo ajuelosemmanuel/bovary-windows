@@ -25,11 +25,21 @@ def load_validator(path):
     return specification
 
 
-def provider_identity(path):
-    """One authorization/configuration identity across path aliases and copies."""
+def load_provider_config(path):
+    """Read approval settings once so their identity and adapter share a snapshot."""
     if path is None:
         return None
+    from .contract import ExecutionError
     configuration = json.loads(Path(path).read_text(encoding='utf-8-sig'))
+    if not isinstance(configuration, dict):
+        raise ExecutionError('provider_config', 'Provider configuration must contain a JSON object')
+    return configuration
+
+
+def provider_identity(configuration):
+    """One authorization/configuration identity across path aliases and copies."""
+    if configuration is None:
+        return None
     canonical = json.dumps(configuration, sort_keys=True, separators=(',', ':'), allow_nan=False)
     return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
 
@@ -52,8 +62,9 @@ def create_workbench(root=None, provider_config=None):
     from .policy import default_policy_path
     root = Path(root) if root else project_home()
     commercial = None
-    if provider_config:
-        config = json.loads(Path(provider_config).read_text(encoding="utf-8-sig"))
+    if provider_config is not None:
+        config = (load_provider_config(provider_config)
+                  if isinstance(provider_config, (str, os.PathLike)) else provider_config)
         try:
             commercial = OpenAIAdapter(ProviderConfig(**config))
         except TypeError as error:

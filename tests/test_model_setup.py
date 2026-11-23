@@ -38,6 +38,15 @@ class ModelSetupTests(unittest.TestCase):
         self.model.write_bytes(self.payload)
         self.manifest = self.root/"proof.json"
 
+    def test_runtime_and_doctor_require_the_filename_in_the_proof(self):
+        verify_model.verify_model(self.model, self.manifest)
+        other = self.root / "same-bytes.gguf"
+        other.write_bytes(self.payload)
+        self.assertEqual(check_model(other, self.manifest)[0]['status'], 'fail')
+        adapter = LocalAdapter(self.root, model=other, manifest=self.manifest)
+        with self.assertRaisesRegex(ExecutionError, 'manifest names another checkpoint file'):
+            adapter._checkpoint()
+
     def test_existing_unicode_model_verification_is_offline_and_idempotent(self):
         original = self.model.stat()
         with mock.patch('urllib.request.urlopen') as network:

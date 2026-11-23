@@ -348,7 +348,12 @@ class LocalAdapter:
             manifest = json.loads(path.read_text(encoding="utf-8-sig"))
             if not isinstance(manifest, dict):
                 raise ValueError("Verification manifest must be an object")
-            model = self.model_path or self.root / "work/models" / Path(manifest["filename"]).name
+            filename = manifest.get("filename")
+            if not isinstance(filename, str) or not filename or filename != Path(filename).name:
+                raise ValueError("Verification manifest must name a checkpoint file")
+            model = (self.model_path or self.root / "work/models" / filename).resolve()
+            if model.name != filename:
+                raise ValueError("Verification manifest names another checkpoint file")
             if (manifest.get("verified") is not True or not model.is_file()
                     or type(manifest["bytes"]) is not int or manifest["bytes"] < 1
                     or model.stat().st_size != manifest["bytes"]
@@ -356,7 +361,6 @@ class LocalAdapter:
                     or len(manifest["sha256"]) != 64
                     or any(c not in "0123456789abcdef" for c in manifest["sha256"].lower())):
                 raise ValueError("Checkpoint does not match a completed verification manifest")
-            model = model.resolve()
             check_binding(model, manifest, interrupt=interrupt)
             return model, manifest
         except (OSError, KeyError, ValueError, TypeError) as error:
@@ -653,16 +657,16 @@ class LocalAdapter:
         emitted_tokens, emitted_bytes = 0, 0
         requested_count = request.output_tokens if request.output_tokens is not None else 0
         output_bound = request.output_tokens if request.output_tokens is not None else request.context_tokens - 1
-        manifest, warm, startup = {}, False, 0.0
+        manifest, warm, startup, configuration_time = {}, False, 0.0, None
         sender = None
         context_rejected = False
         try:
             command, environment, key, manifest = self._configuration(request, cancel=cancel)
+            configuration_time = time.monotonic() - start
             warm = self.loaded and self._key == key
             startup = 0.0
             if not warm:
                 self._dispose()
-                load_start = time.monotonic()
                 self._preflight(command, environment, request, cancel)
                 self._check_interrupt(request, cancel)
                 self._start(command, environment, key, manifest, request, cancel)
@@ -671,7 +675,7 @@ class LocalAdapter:
                     if (current.get("file_identity") != manifest["file_identity"]
                             or current["sha256"] != manifest["sha256"]):
                         raise ExecutionError("model_unavailable", "Checkpoint verification changed during worker startup")
-                startup = time.monotonic() - load_start
+                startup = time.monotonic() - start
             process = self.process
             self._attempt_started = True
 
@@ -735,7 +739,8 @@ class LocalAdapter:
                         raise ExecutionError("protocol", "Worker sent inconsistent generation termination metadata")
                     parts.append(decoder.decode(b"", final=True))
                     timing = {"end_to_end_s": time.monotonic() - start, "ttft_s": first_text,
-                              "startup_s": startup, "warm": warm, "native": metrics}
+                              "startup_s": startup, "configuration_s": configuration_time,
+                              "warm": warm, "native": metrics}
                     return Result(request.request_id, "local", text="".join(parts),
                                   status="complete" if metrics["finish_reason"] == "eos" else "truncated",
                                   model=manifest.get("filename", self.model_path.name if self.model_path else ""),
@@ -763,7 +768,8 @@ class LocalAdapter:
                                "output_limit": request.output_tokens,
                                "model_sha256": manifest.get("sha256")},
                         timing={"end_to_end_s": time.monotonic()-start, "ttft_s": first_text,
-                                "startup_s": startup if warm or startup > 0 else None, "warm": warm},
+                                 "startup_s": startup if warm or startup > 0 else None,
+                                 "configuration_s": configuration_time, "warm": warm},
                         cost_status="unmeasured_local_compute",
                         error={"code": error.code, "message": str(error), "uncertain_billing": error.uncertain_billing}).to_dict()
                 raise error

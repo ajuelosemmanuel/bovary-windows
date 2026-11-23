@@ -145,7 +145,8 @@ static std::string run_request(llama_model * model, const std::string & user,
     for (int i = 0; i < generation_limit; ++i) {
         float * logits = llama_get_logits_ith(ctx, -1);
         if (!logits) throw std::runtime_error("missing logits");
-        if (logits_file.is_open()) logits_file.write((const char *) logits, vocab_size * sizeof(float));
+        if (logits_file.is_open() && !logits_file.write(reinterpret_cast<const char *>(logits), vocab_size * sizeof(float)))
+            throw std::runtime_error("cannot write logits output");
         const int id = (int) (std::max_element(logits, logits + vocab_size) - logits);
         if (llama_vocab_is_eog(vocab, id)) { early_stop = true; break; }
         generated.push_back(id);
@@ -163,6 +164,10 @@ static std::string run_request(llama_model * model, const std::string & user,
         }
     }
     const double generation_s = seconds(generation_start);
+    if (logits_file.is_open()) {
+        logits_file.close();
+        if (!logits_file) throw std::runtime_error("cannot close logits output");
+    }
     const double total_s = seconds(start);
     std::ostringstream metrics;
     metrics << std::setprecision(17);

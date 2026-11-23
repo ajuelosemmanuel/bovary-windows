@@ -231,6 +231,7 @@ static std::string run_request(llama_model * model, const std::string & user,
     bool in_text = direct_answer;
     bool answer_ended = false;
     double ttft = 0;
+    bool emitted_text = false;
     const auto generation_start = clock_type::now();
     bool verifying_joint = joint_length != 0;
     int joint_accepted = 0, joint_restarts = 0;
@@ -242,11 +243,11 @@ static std::string run_request(llama_model * model, const std::string & user,
     for (int i = 0; i < generation_limit; ++i) {
         float * logits = llama_get_logits_ith(ctx, logit_row);
         if (!logits) throw std::runtime_error("missing logits");
-        if (logits_file.is_open()) logits_file.write((const char *) logits, vocab_size * sizeof(float));
+        if (logits_file.is_open() && !logits_file.write(reinterpret_cast<const char *>(logits), vocab_size * sizeof(float)))
+            throw std::runtime_error("cannot write logits output");
         const int id = (int) (std::max_element(logits, logits + vocab_size) - logits);
         if (i == 0) {
-            ttft = seconds(start);
-            fprintf(stderr, "inkling_first_sample elapsed_s=%.9f token=%d\n", ttft, id);
+            fprintf(stderr, "inkling_first_sample elapsed_s=%.9f token=%d\n", seconds(start), id);
             fflush(stderr);
         }
         if (llama_vocab_is_eog(vocab, id)) { early_stop = true; break; }
@@ -262,21 +263,28 @@ static std::string run_request(llama_model * model, const std::string & user,
             in_text = true;
         } else if (piece == "<|content_thinking|>" || piece == "<|message_model|>") {
             in_text = false;
-        } else if (in_text) {
+        } else if (in_text && len > 0) {
             if (worker) frame('T', piece);
             else { fwrite(text, 1, len, stdout); fflush(stdout); }
+            if (!emitted_text) {
+                ttft = seconds(start);
+                emitted_text = true;
+            }
         }
         token_elapsed.push_back(seconds(start));
+        const bool draft_matched = checked < draft.size() && id == draft[checked];
+        if (draft_matched) {
+            ++checked;
+            if (verifying_joint) ++joint_accepted;
+            else ++accepted;
+        }
         if (answer_ended) break;
         if (i + 1 < generation_limit) {
             const auto step = clock_type::now();
-            if (checked < draft.size() && id == draft[checked]) {
+            if (draft_matched) {
                 // Row 0 followed the seed. Row k follows the kth verified
                 // draft token and already contains the next full logits.
-                ++checked;
                 logit_row = verifying_joint ? int32_t(checked) - joint_length - 1 : int32_t(checked);
-                ++accepted;
-                if (verifying_joint) ++joint_accepted;
             } else {
                 if (checked < draft.size()) {
                     if (verifying_joint) {
@@ -287,10 +295,12 @@ static std::string run_request(llama_model * model, const std::string & user,
                         verified.insert(verified.end(), generated.begin(), generated.end() - 1);
                         prefill(verified, int(verified.size()) - 1);
                         ++joint_restarts;
-                    } else if (!llama_memory_seq_rm(llama_get_memory(ctx), 0, n_prompt + i, -1)) {
-                        throw std::runtime_error("could not roll back rejected prompt lookup");
+                    } else {
+                        if (!llama_memory_seq_rm(llama_get_memory(ctx), 0, n_prompt + i, -1)) {
+                            throw std::runtime_error("could not roll back rejected prompt lookup");
+                        }
+                        ++rollbacks;
                     }
-                    ++rollbacks;
                 }
                 verifying_joint = false;
                 draft = draft_from_prompt(tokens, generated, std::min(lookup_depth, generation_limit - i - 1));
@@ -318,6 +328,10 @@ static std::string run_request(llama_model * model, const std::string & user,
         }
     }
     const double generation_s = seconds(generation_start);
+    if (logits_file.is_open()) {
+        logits_file.close();
+        if (!logits_file) throw std::runtime_error("cannot close logits output");
+    }
     const double total_s = seconds(start);
     std::ostringstream metrics;
     metrics << std::setprecision(17);
@@ -325,7 +339,7 @@ static std::string run_request(llama_model * model, const std::string & user,
         << ",\n\"model_load_s\":" << model_load << ",\n\"context_ready_s\":" << ready
         << ",\n\"prompt_tokens\":" << n_prompt << ",\n\"prompt_batch\":" << prompt_batch << ",\n\"prompt_s\":" << prompt_s
         << ",\n\"prompt_tokens_per_s\":" << n_prompt / prompt_s
-        << ",\n\"ttft_process_internal_s\":" << (generated.empty() ? "null" : std::to_string(ttft)) << ",\n\"ttft_boundary\":" << json_string(worker ? "request start through first emitted generation token; excludes worker startup" : "before backend init through first emitted generation token")
+        << ",\n\"ttft_process_internal_s\":" << (emitted_text ? std::to_string(ttft) : "null") << ",\n\"ttft_boundary\":" << json_string(worker ? "request start through first emitted generation token; excludes worker startup" : "before backend init through first emitted generation token")
         << ",\n\"generation_s\":" << generation_s << ",\n\"total_s\":" << total_s
         << ",\n\"lookup_proposals\":" << proposals << ",\n\"lookup_accepted\":" << accepted
         << ",\n\"lookup_rollbacks\":" << rollbacks

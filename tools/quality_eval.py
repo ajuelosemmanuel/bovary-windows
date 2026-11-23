@@ -32,7 +32,8 @@ def main():
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=False)
     cases_path = ROOT / "benchmarks/quality_cases.json"
-    cases = json.loads(cases_path.read_text(encoding="utf-8"))
+    cases_bytes = cases_path.read_bytes()
+    cases = json.loads(cases_bytes.decode("utf-8"))
     exe = ROOT / "work/build/bovary-cuda/bovary-infer.exe"
     environment = {**os.environ, "BOVARY_STREAM": "1", "BOVARY_STREAM_IO": "unbuffered",
                    "BOVARY_STREAM_BUFFER_MIB": "8", "BOVARY_STREAM_POOL": args.pool}
@@ -106,7 +107,7 @@ def main():
             variant["greedy_accuracy"] = sum(x["greedy_correct"] for x in rows) / len(rows)
             variant["single_letter_compliance"] = sum(x["exact_single_letter"] for x in rows) / len(rows)
             variant["mean_correct_letter_nll"] = sum(x["correct_letter_full_vocab_nll"] for x in rows) / len(rows)
-    report = {"cases_sha256": hashlib.sha256(cases_path.read_bytes()).hexdigest(), "cases": cases,
+    report = {"cases_sha256": hashlib.sha256(cases_bytes).hexdigest(), "cases": cases,
               "native_binary_sha256": hashlib.sha256(exe.read_bytes()).hexdigest(),
               "harness_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               "prompt_format": "Gemma 4 canonical text-only/no-thinking turn; native tokenizer, no approximation of routing",

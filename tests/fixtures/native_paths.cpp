@@ -6,21 +6,36 @@
 #include <iterator>
 
 static int run(const std::vector<std::string> & arguments) {
-    if (arguments.size() != 3) throw std::runtime_error("expected input and output paths");
+    const bool check_collisions = arguments.size() == 4 && arguments[3] == "--collisions";
+    if (arguments.size() != 3 && !check_collisions) throw std::runtime_error("expected input and output paths");
     const auto source = bovary::path_from_utf8(arguments[1]);
     const auto destination = std::filesystem::absolute(bovary::path_from_utf8(arguments[2]));
     auto partial = destination;
     partial += ".partial";
+    if (check_collisions) {
+        try {
+            bovary::reserve_output(partial);
+        } catch (const std::system_error &) {
+            try {
+                bovary::publish_output(partial, destination);
+            } catch (const std::filesystem::filesystem_error &) {
+                return 0;
+            }
+            throw std::runtime_error("publishing replaced an existing destination");
+        }
+        throw std::runtime_error("reservation replaced an existing partial file");
+    }
     if (!std::filesystem::exists(source) || std::filesystem::exists(destination) ||
             std::filesystem::exists(partial) || std::filesystem::space(destination.parent_path()).available == 0)
         throw std::runtime_error("unexpected path fixture state");
     std::ifstream input(source, std::ios::binary);
     if (!input) throw std::runtime_error("cannot open fixture input");
     const std::string content(std::istreambuf_iterator<char>(input), {});
+    bovary::reserve_output(partial);
     std::ofstream output(partial, std::ios::binary);
     if (!output || !(output << content)) throw std::runtime_error("cannot write fixture output");
     output.close();
-    std::filesystem::rename(partial, destination);
+    bovary::publish_output(partial, destination);
     const auto model_environment = bovary_stream_path_environment("BOVARY_STREAM_MODEL");
     const auto trace_environment = bovary_stream_path_environment("BOVARY_STREAM_TRACE");
     if (model_environment != arguments[1] || trace_environment != arguments[2] + ".trace")

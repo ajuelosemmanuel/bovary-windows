@@ -95,7 +95,7 @@ def _check_result(result, *, attempt=False):
     timing = result.get("timing", {})
     if not isinstance(timing, dict):
         raise ValueError("Retained timing must be an object")
-    for key in ("end_to_end_s", "ttft_s", "startup_s", "model_load_s"):
+    for key in ("end_to_end_s", "ttft_s", "startup_s", "model_load_s", "configuration_s"):
         _nonnegative(timing.get(key), key)
     if timing.get("ttft_s") is not None and timing.get("end_to_end_s") is not None and timing["ttft_s"] > timing["end_to_end_s"] + 1e-6:
         raise ValueError("Retained TTFT exceeds end-to-end duration")
@@ -248,7 +248,8 @@ def run_evaluation(workbench, dataset, request_template, output_dir, *,
                     mode = scenario if scenario in ("local", "commercial") else "suggest" if scenario == "routing" else "local"
                     request = replace(request_template, prompt=case["prompt"], request_id=f"eval-{case['id']}-{scenario}",
                                       task=case["task"], workload=case.get("workload", dataset["dataset_id"]),
-                                      mode=mode, validator=case["validator"], allow_escalation=scenario == "escalation")
+                                      mode=mode, validator=case["validator"],
+                                      allow_escalation=scenario == "escalation" and request_template.allow_escalation)
                     start = time.monotonic()
                     if scenario == "routing":
                         suggestion = workbench.execute(request)
@@ -296,15 +297,17 @@ def main():
     parser.add_argument("--deadline-s", type=float, default=300)
     parser.add_argument("--tokens", type=int, default=128)
     args = parser.parse_args()
+    scenarios = tuple(args.scenario or ("local",))
     from .runtime import create_workbench
     workbench = create_workbench(provider_config=args.provider_config)
     request = Request("evaluation template", allowed_destinations=("local", "commercial") if args.allow_cloud else ("local",),
                       offline=not args.allow_cloud, private=not args.allow_cloud,
+                      allow_escalation=args.allow_cloud and "escalation" in scenarios,
                       output_tokens=args.tokens, max_cost_usd=args.max_cost_usd,
                       deadline=time.monotonic() + args.deadline_s, identity={"data_class": args.data_class})
     try:
         result = run_evaluation(workbench, json.loads(args.dataset.read_text(encoding="utf-8-sig")), request, args.output,
-                                scenarios=tuple(args.scenario or ("local",)))
+                                scenarios=scenarios)
         print(json.dumps(result["summary"], indent=2))
     except (ValueError, OSError) as error:
         parser.error(str(error))

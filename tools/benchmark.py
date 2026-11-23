@@ -292,10 +292,8 @@ class SerialLock:
     def __init__(self, path): self.path, self.file = Path(path), None
     def __enter__(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        # Windows permits locking a byte beyond EOF. The lock needs no contents.
         self.file = self.path.open("a+b")
-        self.file.seek(0)
-        self.file.write(b"0")
-        self.file.flush()
         self.file.seek(0)
         try:
             if os.name == "nt":
@@ -411,10 +409,15 @@ class DiskMonitor:
             "limitations": "Whole-volume net free-space change includes unrelated writes/deletes; not a per-file allocation counter. Sampling can miss transient installation peaks. No disk queries occur unless explicitly enabled."}
 
 
-def run_one(config, configuration, workload, repetition, warmup, output_dir):
+def run_name(configuration, workload, repetition, warmup):
     run_id = f"{configuration['id']}-{workload}-{'warmup' if warmup else 'rep'}{repetition}"
     if not re.fullmatch(r"[A-Za-z0-9_.-]+", run_id):
         raise ValueError("Configuration/workload identifiers must be filesystem-safe")
+    return run_id
+
+
+def run_one(config, configuration, workload, repetition, warmup, output_dir):
+    run_id = run_name(configuration, workload, repetition, warmup)
     directory = output_dir / run_id
     directory.mkdir(parents=True, exist_ok=False)
     prompt = PROMPTS[workload]
@@ -589,14 +592,39 @@ def main():
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
     config = json.loads(args.config.read_text(encoding="utf-8-sig"))
-    if config.get("sample_interval_seconds", .1) <= 0 or config.get("timeout_seconds", 1800) <= 0:
-        raise ValueError("Sample interval and timeout must be positive")
+    for name, default in (("sample_interval_seconds", .1), ("timeout_seconds", 1800)):
+        value = config.get(name, default)
+        if type(value) not in (int, float) or not 0 < value < float("inf"):
+            parser.error(f"{name} must be a positive finite number")
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=True)
     workloads = config.get("workloads", list(PROMPTS))
     if not set(workloads).issubset(PROMPTS): raise ValueError("Unknown workload")
-    with SerialLock(config.get("lock_file", str(Path(__file__).resolve().parents[1]/"work"/"benchmark.lock"))):
-        (output/"configuration.json").write_text(json.dumps(config, indent=2), encoding="utf-8")
+    lock = Path(config.get("lock_file", Path(__file__).resolve().parents[1] / "work" / "benchmark.lock")).resolve()
+    directories = [output]
+    lock_entries = set()
+    if lock == output:
+        parser.error("Benchmark lock conflicts with the output directory")
+    if lock.is_relative_to(output):
+        lock_top = output / lock.relative_to(output).parts[0]
+        artifacts = {"configuration.json", "host.json", "results.json", "summary.json"}
+        artifacts.update(run_name(*run) for run in run_schedule(config))
+        if lock_top in {output / name for name in artifacts}:
+            parser.error("Benchmark lock conflicts with an output artifact")
+        lock_entries = {lock}
+        for directory in lock.parents:
+            if directory == output:
+                break
+            directories.append(directory)
+            lock_entries.add(directory)
+    with SerialLock(lock):
+        if any(entry not in lock_entries for directory in directories for entry in directory.iterdir()):
+            parser.error("Benchmark output directory must be empty apart from its lock")
+        try:
+            with (output/"configuration.json").open("x", encoding="utf-8") as file:
+                json.dump(config, file, indent=2)
+        except FileExistsError:
+            parser.error("Benchmark output directory already has a configuration")
         (output/"host.json").write_text(json.dumps({"platform": platform.platform(), "python": sys.version,
             "processor": platform.processor(), "machine": platform.machine(), "cpu_count": os.cpu_count()}, indent=2), encoding="utf-8")
         results = []

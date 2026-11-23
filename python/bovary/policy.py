@@ -80,7 +80,7 @@ def validate_policy(policy):
 
 
 def decide(policy, *, task="general", complexity="auto", workload="default",
-           allow_cloud=False, offline=False, validation_failed=False,
+           allow_cloud=False, allow_local=True, offline=False, validation_failed=False,
            multistep=False, high_stakes=False, input_tokens=0, output_tokens=128,
            monthly_requests=1000, max_monthly_cost_usd=None, max_latency_s=None):
     validate_policy(policy)
@@ -119,6 +119,8 @@ def decide(policy, *, task="general", complexity="auto", workload="default",
         if name == "commercial" and not cloud_enabled:
             excluded.append("Cloud use is disabled or offline operation is required.")
         if name == "local":
+            if not allow_local:
+                excluded.append("Local use is disabled for this request.")
             if validation_failed:
                 excluded.append("The local answer failed task validation; escalate instead of retrying blindly.")
             if LEVELS[level] > LEVELS[policy["local_max_complexity"]] and quality != "pass":

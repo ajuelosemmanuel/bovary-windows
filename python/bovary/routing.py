@@ -43,14 +43,11 @@ class Workbench:
         commercial["evaluations"] = []
         result = decide(policy, task=request.task, workload=request.workload,
                         allow_cloud="commercial" in request.allowed_destinations,
+                        allow_local="local" in request.allowed_destinations,
                         offline=request.offline or request.private,
                         input_tokens=input_upper_bound(request.prompt), output_tokens=request.output_tokens,
                         validation_failed=validation_failed)
         result["reasons"].append("Runtime configuration identities replace historical policy defaults; unverified summary evaluations are excluded")
-        if "local" not in request.allowed_destinations and result["recommendation"] == "local":
-            result["recommendation"] = None
-            result["status"] = "blocked"
-            result["reasons"].append("The request disallows the recommended local destination")
         return result
 
     def execute(self, request, on_event=None, cancel=None):

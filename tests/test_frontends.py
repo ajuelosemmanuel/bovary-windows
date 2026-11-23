@@ -153,6 +153,22 @@ class FrontendTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ExecutionError):
                 Request('hello', **change).check()
 
+    def test_invalid_session_bounds_are_rejected_without_losing_later_requests(self):
+        local = Adapter()
+        invalid_bounds = [
+            {'deadline': True}, {'deadline': float('inf')}, {'deadline': 'later'},
+            {'max_cost_usd': True}, {'max_cost_usd': float('inf')}, {'max_cost_usd': '0'},
+        ]
+        lines = [json.dumps(dict(prompt='invalid', **bounds)) for bounds in invalid_bounds]
+        lines.append(json.dumps({'prompt': 'valid'}))
+        code, output, _ = self.run_cli(['--session'], Workbench(local=local), '\n'.join(lines))
+        results = [json.loads(line) for line in output.splitlines()]
+        self.assertEqual(code, 2)
+        self.assertEqual([result['error']['code'] for result in results[:-1]],
+                         ['invalid_request'] * len(invalid_bounds))
+        self.assertEqual(results[-1]['status'], 'complete')
+        self.assertEqual([request.prompt for request in local.requests], ['valid'])
+
     def test_invalid_unicode_and_huge_numbers_fail_before_any_backend(self):
         local, cloud = Adapter(), Adapter()
         workbench = Workbench(local=local, commercial=cloud)
@@ -207,14 +223,16 @@ class FrontendTests(unittest.TestCase):
         self.assertEqual(local.unloads, 1)
 
     def test_provider_ledger_identity_survives_config_path_aliases_and_copies(self):
-        from bovary.runtime import provider_identity
+        from bovary.runtime import load_provider_config, provider_identity
         from bovary.gui import SettingsWindow
         with tempfile.TemporaryDirectory() as directory:
             first, copy = Path(directory)/'first.json', Path(directory)/'copy.json'
             first.write_text('{"enabled":false,"session_cap_usd":0}', encoding='utf-8')
             copy.write_text('{ "session_cap_usd": 0, "enabled": false }', encoding='utf-8')
-            self.assertEqual(provider_identity(first), provider_identity(copy))
-            self.assertEqual(provider_identity(first), provider_identity(first.parent/'.'/first.name))
+            snapshot = load_provider_config(first)
+            self.assertEqual(provider_identity(snapshot), provider_identity(load_provider_config(copy)))
+            self.assertEqual(provider_identity(snapshot),
+                             provider_identity(load_provider_config(first.parent/'.'/first.name)))
             window = SettingsWindow.__new__(SettingsWindow)
             window.process, window.workbench = None, None
             window.workbench_cache, window.approved_provider_key = {}, None
@@ -225,7 +243,7 @@ class FrontendTests(unittest.TestCase):
                 window.unload()
                 window.select_workbench(copy)
                 self.assertIs(window.workbench, approved)
-                self.assertEqual(factory.call_count, 1)
+                factory.assert_called_once_with(mock.ANY, snapshot)
                 self.assertEqual(window.workbench.commercial.committed_usd, 1.5)
                 copy.write_text('{"enabled":true,"session_cap_usd":99}', encoding='utf-8')
                 with self.assertRaises(ExecutionError) as caught:

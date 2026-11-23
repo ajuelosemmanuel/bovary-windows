@@ -14,6 +14,34 @@ from tools.compare_logits import compare
 
 
 class MeasurementTests(unittest.TestCase):
+    def test_runner_preserves_existing_output_and_rejects_unbounded_timing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config_file, output = root / "config.json", root / "output"
+            output.mkdir()
+            original = output / "configuration.json"
+            original.write_text("prior configuration", encoding="utf-8")
+            command = [sys.executable, "tools/benchmark.py", "--config", str(config_file),
+                       "--output-dir", str(output)]
+            config = {"lock_file": str(root / "serial.lock"), "configurations": []}
+            for overrides, message in (
+                ({"timeout_seconds": float("nan")}, "timeout_seconds must be a positive finite number"),
+                ({"sample_interval_seconds": True}, "sample_interval_seconds must be a positive finite number"),
+                ({}, "output directory must be empty"),
+                ({"lock_file": str(original)}, "lock conflicts with an output artifact"),
+                ({"lock_file": str(output / "host.json")}, "lock conflicts with an output artifact"),
+                ({"lock_file": str(output / "A-short-rep1" / "serial.lock"),
+                  "configurations": [{"id": "A"}]}, "lock conflicts with an output artifact"),
+            ):
+                with self.subTest(overrides=overrides):
+                    config_file.write_text(json.dumps({**config, **overrides}), encoding="utf-8")
+                    result = subprocess.run(command, cwd=Path(__file__).resolve().parents[1],
+                                            capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 2)
+                    self.assertIn(message, result.stderr)
+                    self.assertEqual(original.read_text(encoding="utf-8"), "prior configuration")
+                    self.assertEqual(list(output.iterdir()), [original])
+
     def test_interleaved_subprocess_order_and_default_order(self):
         configs = [{"id": name, "command": [sys.executable, "-c", "print('measurement order fixture')"]} for name in ("A", "B")]
         config = {"configurations": configs, "workloads": ["short"], "warmups": 0, "repetitions": 2,
@@ -25,7 +53,7 @@ class MeasurementTests(unittest.TestCase):
             [("A", 1, True), ("B", 1, True), ("A", 1, False), ("B", 1, False), ("A", 2, False), ("B", 2, False)])
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            config["lock_file"] = str(root/"serial.lock")
+            config["lock_file"] = str(root/"output"/"locks"/"serial.lock")
             (root/"config.json").write_text(json.dumps(config), encoding="utf-8")
             result = subprocess.run([sys.executable, "tools/benchmark.py", "--config", str(root/"config.json"),
                 "--output-dir", str(root/"output")], cwd=Path(__file__).resolve().parents[1], capture_output=True)
@@ -143,7 +171,9 @@ llama_perf_context_print: total time = 1090.00 ms / 51 tokens
                 result = subprocess.run([sys.executable, "-c", script, str(path)],
                     cwd=Path(__file__).resolve().parents[1], capture_output=True)
                 self.assertNotEqual(result.returncode, 0)
-            with SerialLock(path): pass
+            with SerialLock(path):
+                pass
+            self.assertEqual(path.stat().st_size, 0)
 
     def test_end_to_end_native_metric_import(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import venv
 
 ROOT = Path(__file__).resolve().parents[1]
 FINDER = ROOT / "scripts/find_build_tools.cmd"
@@ -14,6 +15,26 @@ UNICODE_NAME = "\u05e9\u05dc\u05d5\u05dd-caf\u00e9-\U0001f9ea"
 
 @unittest.skipUnless(os.name == "nt", "Windows build script discovery")
 class BuildToolDiscoveryTests(unittest.TestCase):
+    def test_source_build_uses_checkout_venv_without_path(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "source checkout with spaces"
+            scripts = root / "scripts"
+            scripts.mkdir(parents=True)
+            (scripts / "build.cmd").write_bytes((ROOT / "scripts/build.cmd").read_bytes())
+            (scripts / "bootstrap_engine.py").write_text(
+                "import json, sys\nprint(json.dumps([sys.prefix, sys.argv[1:]]))\nsys.exit(1)\n",
+                encoding="ascii",
+            )
+            venv.create(root / ".venv", with_pip=False)
+            command_processor = os.environ["COMSPEC"]
+            result = subprocess.run([command_processor, "/d", "/v:off", "/c", "scripts\\build.cmd"],
+                                    cwd=root, env={**os.environ, "PATH": ""}, capture_output=True,
+                                    text=True, timeout=30)
+            self.assertEqual(result.returncode, 1, result.stderr)
+            prefix, options = json.loads(result.stdout)
+            self.assertEqual(Path(prefix), root / ".venv")
+            self.assertEqual(options, ["--directory", str(root / "work/engine/bovary-llama.cpp"), "--check"])
+
     @staticmethod
     def tool(path):
         path.parent.mkdir(parents=True, exist_ok=True)

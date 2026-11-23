@@ -13,7 +13,10 @@ if not defined JOBS set "JOBS=4"
 set "PATH_TESTS=%~3"
 if defined PATH_TESTS if /i not "%PATH_TESTS%"=="test-paths" (echo Third argument must be test-paths or omitted. & exit /b 1)
 if defined PATH_TESTS if /i not "%BACKEND%"=="cpu" (echo test-paths requires the cpu backend. & exit /b 1)
-python scripts\bootstrap_engine.py --check
+set "ENGINE_DIR=%CD%\work\engine\bovary-llama.cpp"
+set "BUILD_PYTHON=python"
+if exist ".venv\Scripts\python.exe" set "BUILD_PYTHON=%CD%\.venv\Scripts\python.exe"
+"%BUILD_PYTHON%" scripts\bootstrap_engine.py --directory "%ENGINE_DIR%" --check
 if errorlevel 1 exit /b 1
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 if not exist "%VSWHERE%" (echo Visual Studio Installer vswhere.exe not found. & exit /b 1)
@@ -30,12 +33,12 @@ if /i not "%BACKEND%"=="cuda" (echo Backend must be cuda or cpu. & exit /b 1)
 set "CUDA_PATH=%CD%\work\deps\cuda-13.3"
 if not exist "%CUDA_PATH%\bin\nvcc.exe" (echo Run python tools\inventory_cuda_setup.py first. & exit /b 1)
 set "PATH=%CUDA_PATH%\bin;%CUDA_PATH%\bin\x64;%PATH%"
-"%CMAKE_EXE%" -S . -B work/build/bovary-cuda -G Ninja "-DCMAKE_MAKE_PROGRAM=%NINJA_EXE%" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TRY_COMPILE_CONFIGURATION=Release %CPU_FLAGS% -DBOVARY_CPU_ONLY=OFF -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 "-DCUDAToolkit_ROOT=%CUDA_PATH%" "-DCMAKE_CUDA_COMPILER=%CUDA_PATH%\bin\nvcc.exe"
+"%CMAKE_EXE%" -S . -B work/build/bovary-cuda -G Ninja "-DBOVARY_ENGINE_DIR:PATH=%ENGINE_DIR%" "-DCMAKE_MAKE_PROGRAM=%NINJA_EXE%" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TRY_COMPILE_CONFIGURATION=Release %CPU_FLAGS% -DBOVARY_CPU_ONLY=OFF -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 "-DCUDAToolkit_ROOT=%CUDA_PATH%" "-DCMAKE_CUDA_COMPILER=%CUDA_PATH%\bin\nvcc.exe"
 if errorlevel 1 exit /b 1
 "%CMAKE_EXE%" --build work/build/bovary-cuda --config Release --parallel %JOBS%
 exit /b %errorlevel%
 :cpu
-"%CMAKE_EXE%" -S . -B work/build/bovary-cpu -G Ninja "-DCMAKE_MAKE_PROGRAM=%NINJA_EXE%" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TRY_COMPILE_CONFIGURATION=Release %CPU_FLAGS% -DBOVARY_CPU_ONLY=ON -DGGML_CUDA=OFF
+"%CMAKE_EXE%" -S . -B work/build/bovary-cpu -G Ninja "-DBOVARY_ENGINE_DIR:PATH=%ENGINE_DIR%" "-DCMAKE_MAKE_PROGRAM=%NINJA_EXE%" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TRY_COMPILE_CONFIGURATION=Release %CPU_FLAGS% -DBOVARY_CPU_ONLY=ON -DGGML_CUDA=OFF
 if errorlevel 1 exit /b 1
 "%CMAKE_EXE%" --build work/build/bovary-cpu --config Release --parallel %JOBS%
 if errorlevel 1 exit /b 1

@@ -36,6 +36,16 @@ include docs/reproducibility.md
 include docs/usage.md
 include docs/use-cases.md
 include engine.lock.json
+include integrations/mcp/README.md
+include integrations/mcp/server.py
+include integrations/mcp/smoke.py
+include launcher/README.md
+include launcher/build_kit.py
+include launcher/friend_setup.py
+include launcher/inkling_setup.py
+include launcher/start_bovary.cmd
+include launcher/test_build_kit.py
+include launcher/usage.txt
 include licenses/TurboFieldfare-Apache-2.0.txt
 include licenses/YaRN-MIT.txt
 include licenses/llama.cpp-MIT.txt
@@ -48,6 +58,7 @@ include patches/llama-streaming.patch
 include previews/inkling/CMakeLists.txt
 include previews/inkling/NOTICE.md
 include previews/inkling/README.md
+include previews/inkling/ask.py
 include previews/inkling/infer.cpp
 include previews/inkling/llama-b12600-inkling-stream.patch
 include previews/inkling/llama.cpp-MIT.txt

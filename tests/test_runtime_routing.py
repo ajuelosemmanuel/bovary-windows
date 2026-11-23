@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
 from bovary.contract import ExecutionError, Request, Result
-from bovary.evaluation import digest, run_evaluation, summarize
+from bovary.evaluation import digest, main as evaluation_main, run_evaluation, summarize
 from bovary.evidence import import_evidence, verify_qualification
 from bovary.routing import Workbench
 from bovary.provider import OpenAIAdapter, ProviderConfig
@@ -42,6 +42,15 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(result.status, "suggested")
         result = self.workbench.execute(replace(self.request, mode="auto"))
         self.assertEqual(result.error["code"], "auto_disabled")
+        self.assertEqual((self.local.calls, self.cloud.calls), ([], []))
+
+    def test_suggest_considers_only_permitted_destinations(self):
+        request = replace(self.request, mode="suggest", allowed_destinations=("commercial",),
+                          offline=False, private=False)
+        result = self.workbench.execute(request)
+        self.assertEqual(result.destination, "commercial")
+        self.assertTrue(result.validation["decision"]["candidates"]["local"]["excluded"])
+        self.assertEqual(self.workbench.execute(replace(request, private=True)).destination, "none")
         self.assertEqual((self.local.calls, self.cloud.calls), ([], []))
 
     def test_truncated_answer_is_not_validated_or_escalated(self):
@@ -254,6 +263,41 @@ class RoutingTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 import_evidence(retained)
             self.assertTrue(self.local.unloaded)
+
+    def test_evaluation_requires_request_authorization_for_escalation(self):
+        dataset = {"schema_version": 1, "dataset_id": "synthetic-v1", "rubric_id": "v1",
+                   "synthetic": True, "representative": False,
+                   "cases": [{"id": "one", "task": "classify", "prompt": "Classify yes",
+                              "validator": self.request.validator}]}
+        template = replace(self.request, offline=False, private=False,
+                           allowed_destinations=("local", "commercial"))
+        with tempfile.TemporaryDirectory() as directory:
+            for authorized, correct in ((False, 0), (True, 1)):
+                artifact = run_evaluation(
+                    self.workbench, dataset,
+                    replace(template, allow_escalation=authorized), Path(directory) / str(authorized),
+                    scenarios=("escalation",), source_kind="fake")
+                self.assertEqual(artifact["summary"]["escalation"]["correct"], correct)
+                self.assertEqual(len(self.cloud.calls), correct)
+
+    def test_evaluation_cli_explicitly_authorizes_escalation(self):
+        dataset = {"schema_version": 1, "dataset_id": "synthetic-v1", "rubric_id": "v1",
+                   "synthetic": True, "representative": False,
+                   "cases": [{"id": "one", "task": "classify", "prompt": "Classify yes",
+                              "validator": self.request.validator}]}
+        with tempfile.TemporaryDirectory() as directory:
+            dataset_path = Path(directory) / "dataset.json"
+            dataset_path.write_text(json.dumps(dataset), encoding="utf-8")
+            for cloud_args, correct in (([], 0), (["--allow-cloud"], 1)):
+                output = Path(directory) / str(correct)
+                argv = ["evaluation", "--dataset", str(dataset_path), "--output", str(output),
+                        "--scenario", "escalation", *cloud_args]
+                with patch("sys.argv", argv), patch("builtins.print"), \
+                     patch("bovary.runtime.create_workbench", return_value=self.workbench):
+                    evaluation_main()
+                artifact = json.loads((output / "evaluation.json").read_text(encoding="utf-8"))
+                self.assertEqual(artifact["summary"]["escalation"]["correct"], correct)
+                self.assertEqual(len(self.cloud.calls), correct)
 
     def test_evidence_checks_stale_prompt_dataset_and_validator(self):
         dataset = {"schema_version": 1, "dataset_id": "synthetic-v1", "rubric_id": "v1", "synthetic": True,

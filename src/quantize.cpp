@@ -121,6 +121,7 @@ static int run(const std::vector<std::string> & arguments) {
             (unsigned long long) source_payload, (unsigned long long) expected_payload, params.max_buf_size);
     const auto start = std::chrono::steady_clock::now();
     llama_backend_init();
+    if (!dry_run) bovary::reserve_output(partial);
     if (llama_model_quantize(input.c_str(), partial_utf8.c_str(), &params) != 0)
         throw std::runtime_error("conversion failed; partial output is retained for inspection");
     llama_backend_free();
@@ -136,7 +137,7 @@ static int run(const std::vector<std::string> & arguments) {
             actual_payload += gguf_get_tensor_size(actual.get(), j);
         }
         if (actual_payload != expected_payload) throw std::runtime_error("converted payload size differs from exact plan");
-        std::filesystem::rename(partial, destination);
+        bovary::publish_output(partial, destination);
         fprintf(stderr, "final_file_bytes=%llu\n", (unsigned long long) std::filesystem::file_size(destination));
     }
     fprintf(stderr, "elapsed_seconds=%.6f dry_run=%s\n", std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count(), dry_run ? "true" : "false");

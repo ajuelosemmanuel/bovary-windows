@@ -61,6 +61,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Full test suite failed' }
       - name: Run Inkling preview tests without models
         run: python -m unittest discover -s previews/inkling -p test_preview.py -v
+      - name: Validate model-choice launcher packaging without models
+        run: python -m unittest discover -s launcher -p test_build_kit.py -v
       - name: Build wheel
         run: python -m pip wheel --no-index --no-deps --no-build-isolation . --wheel-dir dist
       - name: Verify actual wheel and isolated installed behavior

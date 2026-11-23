@@ -14,7 +14,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 import uuid
 
-from .runtime import project_home, create_workbench, provider_identity, load_validator
+from .runtime import project_home, create_workbench, load_provider_config, provider_identity, load_validator
 from .contract import ExecutionError, MAX_HOST_CACHE_MIB, Request, STREAMING_GPU_PROFILES
 from .validators import validate_specification
 import time
@@ -506,14 +506,15 @@ class SettingsWindow:
         threading.Thread(target=execute, daemon=True).start()
 
     def select_workbench(self, config):
-        config_key = provider_identity(config)
+        configuration = load_provider_config(config)
+        config_key = provider_identity(configuration)
         if config_key and self.approved_provider_key and config_key != self.approved_provider_key:
             raise ExecutionError('provider_session_locked', 'Provider authorization is fixed for this window. Reconcile the existing session before approving a new configuration and restarting.')
         if self.workbench is None or getattr(self, '_provider_key', None) != config_key:
             self.unload()
             # Aliases, copies, local mode and Unload never renew the provider cap.
             if config_key not in self.workbench_cache:
-                self.workbench_cache[config_key] = create_workbench(ROOT, config)
+                self.workbench_cache[config_key] = create_workbench(ROOT, configuration)
             self.workbench = self.workbench_cache[config_key]
             self._provider_key = config_key
             if config_key:

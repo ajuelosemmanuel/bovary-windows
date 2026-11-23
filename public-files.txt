@@ -144,3 +144,14 @@ docs/usage.md
 docs/use-cases.md
 docs/images/bovary-banner.png
 docs/images/bovary-mini-repair-demo.gif
+integrations/mcp/README.md
+integrations/mcp/server.py
+integrations/mcp/smoke.py
+launcher/build_kit.py
+launcher/friend_setup.py
+launcher/inkling_setup.py
+launcher/README.md
+launcher/start_bovary.cmd
+launcher/test_build_kit.py
+launcher/usage.txt
+previews/inkling/ask.py

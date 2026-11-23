@@ -1,8 +1,11 @@
 #pragma once
 
+#include <cerrno>
+#include <cstdio>
 #include <filesystem>
 #include <stdexcept>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #ifdef _WIN32
@@ -43,6 +46,27 @@ inline std::filesystem::path path_from_utf8(const std::string & value) {
 
 inline std::string path_to_utf8(const std::filesystem::path & value) {
     return value.u8string();
+}
+
+inline void reserve_output(const std::filesystem::path & path) {
+#ifdef _WIN32
+    FILE * output = _wfopen(path.c_str(), L"wbx");
+#else
+    FILE * output = std::fopen(path.c_str(), "wbx");
+#endif
+    if (!output || std::fclose(output) != 0)
+        throw std::system_error(errno, std::generic_category(), "cannot reserve partial output");
+}
+
+inline void publish_output(const std::filesystem::path & staged, const std::filesystem::path & destination) {
+#ifdef _WIN32
+    if (!MoveFileW(staged.c_str(), destination.c_str()))
+        throw std::filesystem::filesystem_error("cannot publish partial output", staged, destination,
+            std::error_code(GetLastError(), std::system_category()));
+#else
+    std::filesystem::create_hard_link(staged, destination);
+    std::filesystem::remove(staged);
+#endif
 }
 
 } // namespace bovary

@@ -2,6 +2,8 @@
 
 **[Download the Gemma and Inkling Windows launcher](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a16/Bovary-Windows-a16-model-choice.zip).** Extract the ZIP, open **Start Bovary.cmd**, then choose Gemma, Inkling, or both. [Model requirements and setup](README.md#start-bovary-on-windows) · [Checksums](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a16/SHA256SUMS.txt)
 
+The launcher checks for a working AVX2/FMA CPU runtime before the model menu. For Inkling or both models, use an NVIDIA GPU with a CUDA 13.5-compatible driver and a local NTFS SSD. The launcher downloads the selected checkpoints and stores setup files in **Bovary Data** alongside **Start Bovary.cmd**.
+
 For manual Gemma CPU setup, download the wheel, Windows x64 CPU runtime ZIP, and SHA256SUMS.txt from the [Windows alpha release](https://github.com/ajuelosemmanuel/bovary-windows/releases/tag/v0.2.0a16). Follow the [quick start](README.md#install-the-windows-alpha-from-release-files) to check the downloads, verify the separately supplied Gemma checkpoint, and try an offline Mini request. The CPU worker requires AVX2/FMA.
 
 The code repair replay shows the 0.2.0a14 pilot. The CUDA host-cache comparison reports 0.2.0a15 measurements on an RTX 3060 laptop. CUDA testers can [build the optional worker](docs/reproducibility.md#build-and-try-the-cuda-worker) and choose the gpu-prefill-2g preset.

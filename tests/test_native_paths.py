@@ -51,6 +51,18 @@ class NativeUnicodePathsTests(unittest.TestCase):
             self.assertFalse(Path(str(destination) + ".partial").exists())
             self.assertEqual(trace.read_bytes(), b"Unicode trace fixture\n")
 
+    @unittest.skipUnless(PATH_FIXTURE.is_file(), "Build bovary-paths-test with scripts/build.cmd cpu 2 test-paths")
+    def test_existing_unicode_partial_and_destination_are_preserved(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            destination = Path(temporary) / (UNICODE_NAME + ".gguf")
+            partial = destination.with_suffix(".gguf.partial")
+            destination.write_bytes(b"other destination")
+            partial.write_bytes(b"other partial")
+            result = self.native_run([PATH_FIXTURE, destination, destination, "--collisions"])
+            self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
+            self.assertEqual(destination.read_bytes(), b"other destination")
+            self.assertEqual(partial.read_bytes(), b"other partial")
+
     @unittest.skipUnless(INFER.is_file(), "Bovary CPU-only build required")
     def test_infer_opens_unicode_prompt_and_synthetic_metadata(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -38,7 +38,9 @@ python previews/inkling/run.py run --bin .\inkling-build\native\bin --receipt .\
 
 Registration hashes the model and sidecar once. Each run checks their registered paths, file identities, sizes and timestamps before launch. Register to a new receipt after moving, modifying, or replacing either file. Keep the local receipt with your own inputs because it records their absolute paths.
 
-The launcher streams native output and saves generation metrics to a new JSON file. The one-shot runner uses the measured inference flags below. The historical test used protocol worker mode and separately bound the process to the laptop's performance cores. The preview's one-shot launcher uses normal Windows scheduling.
+The launcher streams native output and saves generation metrics to a new JSON file. In a worker built from this checkout, `ttft_process_internal_s` ends when the first nonempty piece of answer text is emitted. It is null if the worker emits no text. In one-shot mode the clock starts before backend initialization. In protocol mode it starts at the request, after worker startup. Measure from the calling application for end-to-end laptop latency. The `joint_*` counters describe proposals made during prompt processing, and `lookup_*` counts subsequent proposals.
+
+The one-shot runner uses the inference flags below. The historical test used protocol worker mode and separately bound the process to the laptop's performance cores. The preview's one-shot launcher uses normal Windows scheduling.
 
 | Setting | Value |
 | --- | --- |
