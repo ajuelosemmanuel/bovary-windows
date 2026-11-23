@@ -1,3 +1,15 @@
+# Bovary 0.2.0a17 Windows alpha
+
+**[Download Bovary for Windows x64](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-cuda-x64.zip)** · [SHA-256 checksums](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/SHA256SUMS.txt)
+
+Extract the ZIP and double-click **Start Bovary.cmd**. Press **Enter** to try Gemma 26B. On a compatible NVIDIA laptop the launcher fetches 426 MB of CUDA libraries on first use and displays **Gemma 26B (CUDA)**. Other laptops use the included CPU worker. Choose **C** to force CPU. Allow 20 GB of free space for Gemma. The 14.6 GB checkpoint downloads separately.
+
+Choose **I** for Inkling 2 Mini on compatible NVIDIA hardware or **B** to install both models. Type `/models` at the prompt to switch. [Hardware, disk space, and setup](README.md#start-bovary-on-windows)
+
+Mini now reports the selected preset in its JSON results. For manual CPU installation, download the matching a17 wheel and CPU runtime archive and follow the [PowerShell instructions](README.md#install-the-windows-alpha-from-release-files).
+
+---
+
 # Bovary 0.2.0a16 Windows alpha
 
 **[Download the Gemma and Inkling Windows launcher](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a16/Bovary-Windows-a16-model-choice.zip).** Extract the ZIP, open **Start Bovary.cmd**, then choose Gemma, Inkling, or both. [Model requirements and setup](README.md#start-bovary-on-windows) · [Checksums](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a16/SHA256SUMS.txt)

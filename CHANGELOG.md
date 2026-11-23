@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0a17 (Windows CUDA-first alpha)
+
+- Start Gemma 26B with CUDA automatically when the Windows launcher verifies a compatible NVIDIA driver and CUDA worker.
+- Offer CPU execution when CUDA is unavailable and keep an explicit CPU choice in the launcher.
+- Package the Gemma CUDA and Inkling workers in the Windows model-choice ZIP. Setup retrieves the verified runtime and model weights separately.
+
 ## 0.2.0a16 (Windows tester review)
 
 - Package the Windows alpha for a private tester review in the Bovary Windows repository. Update the install commands and download link to match the current artifacts.

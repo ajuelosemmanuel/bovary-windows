@@ -87,7 +87,7 @@ if ($LASTEXITCODE -ne 0) { throw "Model verification failed; inference was not s
 if ($LASTEXITCODE -ne 0) { throw "CUDA Mini smoke failed." }
 ```
 
-An installed wheel can use the same source-built worker. Keep `BOVARY_HOME`, `BOVARY_CUDA_EXE`, and the model variables set as above and invoke the wheel's `bovary.exe` from its own environment. The release assets omit NVIDIA DLLs and a prebuilt CUDA worker. See the [third-party terms](licensing.md) for details.
+An installed wheel can use the same source-built worker. Keep `BOVARY_HOME`, `BOVARY_CUDA_EXE`, and the model variables set as above and invoke the wheel's `bovary.exe` from its own environment. The one-click ZIP includes the Gemma CUDA worker. Setup downloads the required cuBLAS DLLs on compatible systems. See the [third-party terms](licensing.md) for details.
 
 ## CPU release builds and hosted checks
 

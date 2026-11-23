@@ -20,6 +20,7 @@ benchmarks/validators/hello.json
 docs/architecture.md
 docs/branding.md
 docs/configuration.md
+docs/cuda-redistribution.md
 docs/evaluation.md
 docs/finish-project.md
 docs/implementation-assessment.md
@@ -30,6 +31,9 @@ docs/provider.md
 docs/release-review.md
 docs/reproducibility.md
 engine.lock.json
+licenses/CCCL-CUB-BSD-3-Clause.txt
+licenses/CCCL-LICENSE.txt
+licenses/NVIDIA-CUDA-13.5.txt
 licenses/TurboFieldfare-Apache-2.0.txt
 licenses/YaRN-MIT.txt
 licenses/llama.cpp-MIT.txt

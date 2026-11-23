@@ -24,6 +24,8 @@ CPU_REQUIRED = {
     "tools/verify_model.py",
     *(f"previews/inkling/{name}" for name in ("pack.py", "preview.py", "run.py", "upstream.json")),
 }
+GEMMA_CUDA_NOTICES = ("docs/cuda-redistribution.md", "licenses/CCCL-LICENSE.txt",
+                      "licenses/CCCL-CUB-BSD-3-Clause.txt", "licenses/NVIDIA-CUDA-13.5.txt")
 
 
 def sha256(data):
@@ -105,6 +107,8 @@ def build_kit(*, wheel, cpu_archive, checksums, native_bin, native_checksums, js
             raise ValueError("Private Windows build path in Gemma CUDA worker")
         members["setup/gemma-cuda/bovary-infer.exe"] = worker
         members["setup/gemma-cuda/CUDA-LICENSE.txt"] = checked_bytes(gemma_cuda_license, CUDA_TOOLKIT_LICENSE_SHA256)
+        for name in GEMMA_CUDA_NOTICES:
+            members[f"setup/gemma-cuda/{Path(name).name}"] = (ROOT / name).read_bytes()
     # Fixed member metadata makes identical input bytes produce the same archive.
     with ZipFile(output, "x") as kit:
         for name, data in members.items():

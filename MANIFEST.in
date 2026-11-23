@@ -21,6 +21,7 @@ include benchmarks/validators/hello.json
 include docs/architecture.md
 include docs/branding.md
 include docs/configuration.md
+include docs/cuda-redistribution.md
 include docs/evaluation.md
 include docs/finish-project.md
 include docs/images/bovary-banner.png
@@ -46,6 +47,9 @@ include launcher/inkling_setup.py
 include launcher/start_bovary.cmd
 include launcher/test_build_kit.py
 include launcher/usage.txt
+include licenses/CCCL-CUB-BSD-3-Clause.txt
+include licenses/CCCL-LICENSE.txt
+include licenses/NVIDIA-CUDA-13.5.txt
 include licenses/TurboFieldfare-Apache-2.0.txt
 include licenses/YaRN-MIT.txt
 include licenses/llama.cpp-MIT.txt

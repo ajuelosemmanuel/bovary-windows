@@ -33,7 +33,7 @@ if /i not "%BACKEND%"=="cuda" (echo Backend must be cuda or cpu. & exit /b 1)
 set "CUDA_PATH=%CD%\work\deps\cuda-13.3"
 if not exist "%CUDA_PATH%\bin\nvcc.exe" (echo Run python tools\inventory_cuda_setup.py first. & exit /b 1)
 set "PATH=%CUDA_PATH%\bin;%CUDA_PATH%\bin\x64;%PATH%"
-"%CMAKE_EXE%" -S . -B work/build/bovary-cuda -G Ninja "-DBOVARY_ENGINE_DIR:PATH=%ENGINE_DIR%" "-DCMAKE_MAKE_PROGRAM=%NINJA_EXE%" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TRY_COMPILE_CONFIGURATION=Release %CPU_FLAGS% -DBOVARY_CPU_ONLY=OFF -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 "-DCUDAToolkit_ROOT=%CUDA_PATH%" "-DCMAKE_CUDA_COMPILER=%CUDA_PATH%\bin\nvcc.exe"
+"%CMAKE_EXE%" -S . -B work/build/bovary-cuda -G Ninja "-DBOVARY_ENGINE_DIR:PATH=%ENGINE_DIR%" "-DCMAKE_MAKE_PROGRAM=%NINJA_EXE%" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TRY_COMPILE_CONFIGURATION=Release %CPU_FLAGS% -DBOVARY_CPU_ONLY=OFF -DGGML_CUDA=ON -DGGML_STATIC=ON -DCMAKE_CUDA_ARCHITECTURES=86 "-DCUDAToolkit_ROOT=%CUDA_PATH%" "-DCMAKE_CUDA_COMPILER=%CUDA_PATH%\bin\nvcc.exe"
 if errorlevel 1 exit /b 1
 "%CMAKE_EXE%" --build work/build/bovary-cuda --config Release --parallel %JOBS%
 exit /b %errorlevel%

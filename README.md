@@ -6,13 +6,13 @@
 
 Run Gemma 26B or Inkling 2 Mini on your Windows laptop. Turn a note into a checklist, ask about a function, or try the same question with both models. Once setup finishes, your prompts and answers stay on your machine.
 
-**[Download Bovary for Windows x64 (ZIP, 5.6 MB)](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a16/Bovary-Windows-a16-model-choice.zip)** · [SHA-256 checksums](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a16/SHA256SUMS.txt)
+**[Download Bovary for Windows x64 (CUDA-first ZIP, about 52 MB)](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-cuda-x64.zip)** · [SHA-256 checksums](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/SHA256SUMS.txt)
 
 ## Start Bovary on Windows
 
-The linked a16 ZIP runs Gemma on CPU and Inkling on CUDA. The [new launcher build](launcher/README.md) also runs Gemma on CUDA by default on a compatible NVIDIA GPU, with CPU fallback and a CPU-only choice.
+Press **Enter** at the model menu for Gemma. Bovary selects CUDA on a compatible NVIDIA GPU and shows **Gemma 26B (CUDA)** when ready. If the setup or device check fails, it selects CPU. Choose **C** to force CPU, including on an NVIDIA laptop.
 
-The a16 launcher requires Windows x64 and a CPU with AVX2/FMA. Inkling also needs the NVIDIA driver and SSD listed below. Initial setup uses the internet to fetch dependencies and any model you select.
+Use Windows x64 and an AVX2/FMA-capable CPU. Automatic Gemma CUDA targets NVIDIA GPUs in the 6 GB VRAM class or larger, with compute capability 8.6 or newer and a CUDA 13-capable driver. Inkling has its own requirements below. Initial setup uses the internet to fetch dependencies and any model you select.
 
 1. Choose **Extract All**, then double-click **Start Bovary.cmd** in the extracted folder. The launcher offers to install 64-bit Python and the Microsoft x64 Visual C++ runtime if needed.
 2. Choose a model below, or press **E** to verify and use an existing copy of the pinned Gemma checkpoint. Keep the extracted folder on a drive with enough space for the setup files and weights. The launcher saves its downloads in **Bovary Data** beside the command file.
@@ -20,7 +20,7 @@ The a16 launcher requires Windows x64 and a CPU with AVX2/FMA. Inkling also need
 
 | Choose | Best fit | Download | Allow free |
 |---|---|---:|---:|
-| **G · Gemma 26B** | Everyday questions on CPU | 14.6 GB | 18 GB |
+| **G · Gemma 26B** | Everyday questions on CUDA or CPU | 14.6 GB model, plus 426 MB for CUDA on first use | 20 GB |
 | **I · Inkling 2 Mini** | Coding tasks on an NVIDIA GPU with a CUDA 13.5-compatible driver and a local NTFS SSD | 18.3 GB including CUDA dependencies | 39 GB |
 | **B · Both** | Meet the Inkling requirements and switch models in the same session | About 32.9 GB | 54 GB |
 
@@ -76,7 +76,7 @@ Setting `--host-cache-mib 4096` took **12.7% less time** for this edit, and all 
 
 ## Choose your Windows setup
 
-- **Packaged CPU.** Install the Python wheel and CPU runtime ZIP from the release files below. The CPU worker is the default and runs without an NVIDIA GPU.
+- **Packaged CPU.** Install the Python wheel and CPU runtime ZIP from the release files below. This manual setup runs on CPU with the supplied worker.
 - **Source-built NVIDIA CUDA.** Build the CUDA worker, make its runtime dependencies available, and select `--preset gpu-prefill-2g`. With the wheel, set `BOVARY_CUDA_EXE` to the built `bovary-infer.exe`. [CUDA build instructions](docs/reproducibility.md#build-and-try-the-cuda-worker)
 
 These two manual Gemma paths use the same pinned **14.6 GB Gemma checkpoint**. [Verify or obtain the checkpoint](docs/configuration.md#verify-or-obtain-the-pinned-checkpoint)
@@ -85,11 +85,11 @@ These two manual Gemma paths use the same pinned **14.6 GB Gemma checkpoint**. [
 
 Use Windows x64, an AVX2/FMA-capable CPU, and 64-bit Python 3.11 or newer with Tcl/Tk and the `python` command available in PowerShell. The CPU worker needs the Microsoft x64 C++/OpenMP runtime. [Microsoft Visual C++ Redistributable downloads](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/)
 
-Download the wheel, CPU runtime ZIP, and `SHA256SUMS.txt` into one fresh folder, then open PowerShell in that folder. Run each block in this same session and stop if a block reports an error. [0.2.0a16 Windows alpha](https://github.com/ajuelosemmanuel/bovary-windows/releases/tag/v0.2.0a16)
+Download the wheel, CPU runtime ZIP, and `SHA256SUMS.txt` into one fresh folder, then open PowerShell in that folder. Run each block in this same session and stop if a block reports an error. [0.2.0a17 Windows alpha](https://github.com/ajuelosemmanuel/bovary-windows/releases/tag/v0.2.0a17)
 
 ```powershell
-$zip = 'bovary-0.2.0a16-cpu-review.zip'
-$wheel = 'bovary-0.2.0a16-py3-none-any.whl'
+$zip = 'bovary-0.2.0a17-cpu-review.zip'
+$wheel = 'bovary-0.2.0a17-py3-none-any.whl'
 $checksums = @(Get-Content -LiteralPath .\SHA256SUMS.txt -ErrorAction Stop)
 foreach ($file in @($zip, $wheel)) {
     $pattern = '^([a-f0-9]{64})\s+' + [regex]::Escape($file) + '$'
@@ -139,7 +139,7 @@ $env:BOVARY_MODEL_MANIFEST = Join-Path $modelDirectory 'model-provenance.json'
 if ($LASTEXITCODE -ne 0) { throw "Mini smoke test failed." }
 ```
 
-The 0.2.0a16 smoke test returned `45` from a fresh offline install. If setup needs attention, run `.\.venv\Scripts\bovary.exe doctor` in the same shell. Before model setup, a missing manifest is expected. The packaged verifier and downloader are under `.\runtime\tools\`, even if the 0.2.0a16 diagnostic points to a source checkout.
+The expected answer is `45`. If setup needs attention, run `.\.venv\Scripts\bovary.exe doctor` in the same shell. Before model setup, a missing manifest is expected. The packaged verifier and downloader are under `.\runtime\tools\`.
 
 ## Try a code edit
 

@@ -1,4 +1,4 @@
-# Third-party notices and inventory (2026-11-14)
+# Third-party notices and inventory
 
 Bovary's project-authored software and documentation are licensed under the [MIT License](LICENSE), adopted on 2026-11-14. Third-party components retain the notices and terms below; the project license does not replace them. See [licensing scope](docs/licensing.md).
 
@@ -12,7 +12,9 @@ Bovary's project-authored software and documentation are licensed under the [MIT
 | rotate-bits used by SHA-256 | MIT, Copyright (c) 2021 William Casarin | Full notice retained in `licenses/rotate-bits-MIT.txt`. |
 | TurboFieldfare at `fc2210c7119d08cafd8e97a16f6f37b0cea8bd83` | Apache-2.0 reference research; bounded expert reads informed the design | No Swift/Metal source or package dependencies bundled. Windows C++ implementation extends llama.cpp rather than porting its transformer. Full reference license retained conservatively in `licenses/TurboFieldfare-Apache-2.0.txt`; reference source remains authoritative. |
 | Gemma GGUF checkpoint | Separate publisher/model terms; Q4 source provenance lives in local model manifest | No weights bundled or relicensed. Existing verified model reused. Do not infer terms from the software MIT license. |
-| NVIDIA CUDA 13.3.1 / cuBLAS / CUDA runtime | Proprietary NVIDIA redistribution terms retained in local toolkit | No GPU DLLs or toolkit bundled. A GPU binary release requires component-by-component redistribution review and notice collection. |
+| NVIDIA CUDA 13.3.1 / cuBLAS / CUDA runtime | Proprietary NVIDIA redistribution terms retained in local toolkit | The CUDA launcher kit carries the Gemma worker built with CUDA runtime object code and the CUDA 13.3.1 license, including Attachment B. The Windows runtime DLLs are obtained separately. See the [CUDA component notices](docs/cuda-redistribution.md) for terms, dependency evidence and publication review. |
+| NVIDIA CCCL / CUB 3.3.4 | CUB BSD-3-Clause, Thrust Apache-2.0 with exceptions, libcu++ Apache-2.0 with LLVM exceptions | CUB templates compile into the Gemma CUDA kernels. Retain licenses/CCCL-LICENSE.txt and licenses/CCCL-CUB-BSD-3-Clause.txt. |
+| Inkling preview engine and CUDA backend | Pinned b12600 llama.cpp engine and its upstream CUDA backend archive, with NVIDIA CUDA 13.5 runtime obtained separately | See the [Inkling preview notices](previews/inkling/NOTICE.md) and [CUDA component notices](docs/cuda-redistribution.md). |
 | Microsoft Visual C++ / Universal CRT / OpenMP runtime | Microsoft runtime terms; CPU imports include MSVCP140, VCRUNTIME140(_1), VCOMP140 and Windows system DLLs | Not bundled; install supported Microsoft x64 redistributable. Do not copy system DLLs into a release. |
 | Python / Tk | PSF and Tcl/Tk licenses | Interpreter not bundled; user-installed Python with Tk is required. A future bundled interpreter needs its complete notices. |
 | NumPy 2.5.4, Matplotlib 3.11.2, Zstandard 0.23.0 | Optional analysis only; separate package/upstream licenses and native subcomponents | Not runtime dependencies and not bundled. Inspect their installed license inventories if redistributed. |

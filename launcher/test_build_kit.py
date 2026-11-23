@@ -11,7 +11,7 @@ from unittest.mock import patch
 from zipfile import ZipFile
 
 import friend_setup
-from build_kit import CPU_REQUIRED, NATIVE, ROOT, build_kit, sha256
+from build_kit import CPU_REQUIRED, GEMMA_CUDA_NOTICES, NATIVE, ROOT, build_kit, sha256
 
 
 class BuildKitTest(unittest.TestCase):
@@ -46,10 +46,11 @@ class BuildKitTest(unittest.TestCase):
         receipt = {name: sha256((self.native / name).read_bytes()) for name in NATIVE}
         self.receipt.write_text(json.dumps(receipt), encoding="ascii")
 
-    def build(self, output=None):
+    def build(self, output=None, **kwargs):
         with patch("build_kit.JSONHPP_SHA256", sha256(self.license.read_bytes())):
             build_kit(wheel=self.wheel, cpu_archive=self.cpu, checksums=self.release, native_bin=self.native,
-                      native_checksums=self.receipt, jsonhpp_license=self.license, output=output or self.output)
+                      native_checksums=self.receipt, jsonhpp_license=self.license, output=output or self.output,
+                      **kwargs)
 
     def test_embedded_manifest_is_accepted_on_install(self):
         self.build()
@@ -83,6 +84,25 @@ class BuildKitTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Private Windows build path"):
             self.build()
         self.assertFalse(self.output.exists())
+
+    def test_gemma_cuda_worker_and_notices_are_bundled(self):
+        worker = self.path / "gemma-cuda.exe"
+        worker.write_bytes(b"test Gemma CUDA worker")
+        worker_hash = sha256(worker.read_bytes())
+        with self.assertRaisesRegex(ValueError, "toolkit license"):
+            self.build(gemma_cuda_worker=worker, gemma_cuda_sha256=worker_hash)
+
+        license_path = self.path / "CUDA-LICENSE.txt"
+        license_path.write_bytes(b"test toolkit license")
+        with patch("build_kit.CUDA_TOOLKIT_LICENSE_SHA256", sha256(license_path.read_bytes())):
+            self.build(gemma_cuda_worker=worker, gemma_cuda_sha256=worker_hash,
+                       gemma_cuda_license=license_path)
+        with ZipFile(self.output) as kit:
+            self.assertEqual(kit.read("setup/gemma-cuda/bovary-infer.exe"), worker.read_bytes())
+            self.assertEqual(kit.read("setup/gemma-cuda/CUDA-LICENSE.txt"), license_path.read_bytes())
+            self.assertIn(worker_hash.encode(), kit.read("setup/friend_setup.py"))
+            for name in GEMMA_CUDA_NOTICES:
+                self.assertEqual(kit.read(f"setup/gemma-cuda/{Path(name).name}"), (ROOT / name).read_bytes())
 
     def test_existing_gemma_replaces_saved_settings(self):
         settings = self.path / "model-path.json"
