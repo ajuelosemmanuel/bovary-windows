@@ -47,6 +47,7 @@ include launcher/inkling_setup.py
 include launcher/start_bovary.cmd
 include launcher/test_build_kit.py
 include launcher/usage.txt
+include launcher/windows-setup.iss
 include licenses/CCCL-CUB-BSD-3-Clause.txt
 include licenses/CCCL-LICENSE.txt
 include licenses/NVIDIA-CUDA-13.5.txt

@@ -6,7 +6,7 @@
 
 Run Gemma 26B or Inkling 2 Mini on your Windows laptop. Turn a note into a checklist, ask about a function, or try the same question with both models. Once setup finishes, your prompts and answers stay on your machine.
 
-**[Download Bovary for Windows x64 (CUDA-first ZIP, about 52 MB)](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-cuda-x64.zip)** · [SHA-256 checksums](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/SHA256SUMS.txt)
+**[Install Bovary for Windows x64](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-x64-setup.exe)** · [Installer checksum](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-x64-setup.exe.sha256) · [Portable ZIP](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-cuda-x64.zip)
 
 ## Start Bovary on Windows
 
@@ -14,9 +14,9 @@ Press **Enter** at the model menu for Gemma. Bovary selects CUDA on a compatible
 
 Use Windows x64 and an AVX2/FMA-capable CPU. Automatic Gemma CUDA targets NVIDIA GPUs in the 6 GB VRAM class or larger, with compute capability 8.6 or newer and a CUDA 13-capable driver. Inkling has its own requirements below. Initial setup uses the internet to fetch dependencies and any model you select.
 
-1. Choose **Extract All**, then double-click **Start Bovary.cmd** in the extracted folder. The launcher offers to install 64-bit Python and the Microsoft x64 Visual C++ runtime if needed.
-2. Choose a model below, or press **E** to verify and use an existing copy of the pinned Gemma checkpoint. Keep the extracted folder on a drive with enough space for the setup files and weights. The launcher saves its downloads in **Bovary Data** beside the command file.
-3. Type a question or press Enter for a sample. Type `/models` to return to the model menu and `/quit` to close. Open the launcher from the same folder to reuse your downloads.
+1. Run the downloaded setup, click **Install**, then **Finish** to open Bovary. Choose a drive with space for the models below. This alpha installer is unsigned, so Windows may show a publisher warning. On first launch Bovary offers to install Python and the Microsoft x64 Visual C++ runtime if needed.
+2. Choose a model below, or press **E** to verify and use an existing copy of the pinned Gemma checkpoint. The launcher saves downloads in **Bovary Data** in the installation folder.
+3. Type a question or press Enter for a sample. Type `/models` to return to the model menu and `/quit` to close. Reopen **Bovary Mini** from the Start menu to reuse your downloads. Uninstalling through Windows Settings preserves your model data.
 
 | Choose | Best fit | Download | Allow free |
 |---|---|---:|---:|

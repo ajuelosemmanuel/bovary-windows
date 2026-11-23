@@ -1,5 +1,9 @@
 # Bovary 0.2.0a17 Windows alpha
 
+**[Windows x64 installer](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-x64-setup.exe)** · [Installer SHA-256](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-x64-setup.exe.sha256)
+
+Run setup, choose **Install**, then **Finish**. Reopen **Bovary Mini** from the Start menu. The installer wraps the verified CUDA-first ZIP shown below.
+
 **[Download Bovary for Windows x64](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-cuda-x64.zip)** · [SHA-256 checksums](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/SHA256SUMS.txt)
 
 Extract the ZIP and double-click **Start Bovary.cmd**. Press **Enter** to try Gemma 26B. On a compatible NVIDIA laptop the launcher fetches 426 MB of CUDA libraries on first use and displays **Gemma 26B (CUDA)**. Other laptops use the included CPU worker. Choose **C** to force CPU. Allow 20 GB of free space for Gemma. The 14.6 GB checkpoint downloads separately.

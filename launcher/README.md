@@ -27,3 +27,7 @@ Set the release and build directories and use the asset names for the version yo
 For a CUDA-first Gemma kit, build the [Gemma CUDA worker](../docs/reproducibility.md#build-and-try-the-cuda-worker) from the pinned checkout in a neutral directory. Supply its executable using `--gemma-cuda-worker`, the approved native build digest using `--gemma-cuda-sha256`, and the toolkit's `LICENSE` file using `--gemma-cuda-license`. The launcher probes the NVIDIA driver and worker before choosing its backend. The automatic profile targets the tested 6 GB GPU class, compute capability 8.6 or newer, and a CUDA 13 driver. On first use it fetches the pinned 426 MB runtime archive. Choose **C** for CPU-only, including on NVIDIA laptops.
 
 Run `python -m unittest discover -s launcher -p test_build_kit.py -v` to check ZIP assembly and the embedded checksum handshake without models. Follow the [release review](../docs/release-review.md) for the Windows hardware test.
+
+## Build the per-user Windows installer
+
+Use the exact release ZIP that passed launcher acceptance. Verify it against the release checksum, extract it to a fresh directory named `verified-kit` beside `windows-setup.iss`, then run `ISCC.exe windows-setup.iss` with Inno Setup 6 on Windows. The executable appears in `installer-output`. Use a clean build folder for each version. The installer places the launcher in the current user's Programs directory by default and adds **Bovary Mini** to the Start menu. Model downloads begin when the launcher runs.

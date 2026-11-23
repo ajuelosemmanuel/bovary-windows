@@ -159,4 +159,5 @@ launcher/README.md
 launcher/start_bovary.cmd
 launcher/test_build_kit.py
 launcher/usage.txt
+launcher/windows-setup.iss
 previews/inkling/ask.py
