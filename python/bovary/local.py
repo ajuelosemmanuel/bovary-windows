@@ -267,11 +267,9 @@ class SerialLock:
     def acquire(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         stream = self.path.open("a+b")
-        stream.seek(0)
-        stream.write(b"0")
-        stream.flush()
-        stream.seek(0)
         try:
+            # Lock the same byte as the benchmark even when the file is empty.
+            stream.seek(0)
             if os.name == "nt":
                 import msvcrt
                 msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
