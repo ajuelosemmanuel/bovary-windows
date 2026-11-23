@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import tempfile
 import sys
+from zipfile import ZipFile
 
 from pack import create
 from preview import LOCK, NATIVE, stage_cuda, verify
@@ -18,6 +19,43 @@ ARCHIVE_SIZES = {
     "cudart-llama-bin-win-cuda-13.5-x64.zip": 426314199,
 }
 MODEL = LOCK["model"]
+
+
+def gemma_cuda_environment(state, payload, env, worker_digest):
+    """Stage Gemma's three NVIDIA runtime DLLs without installing Inkling or its model."""
+    from cuda_default import compatible_device, gemma_preset
+
+    home = Path(env["BOVARY_HOME"])
+    if gemma_preset(home, env) != "cpu-only":
+        return env
+    worker = payload / "gemma-cuda/bovary-infer.exe"
+    if not worker_digest or not worker.is_file() or not compatible_device():
+        return None
+    verify(worker, worker_digest)
+    archive_name = "cudart-llama-bin-win-cuda-13.5-x64.zip"
+    record = LOCK["cuda_archives"][archive_name]
+    folder = state / "inkling"  # Both installers can reuse the verified runtime archive.
+    folder.mkdir(exist_ok=True)
+    runtime = state / ("cuda-runtime-" + record["sha256"][:16])
+    if not runtime.is_dir():
+        print("Preparing the Gemma CUDA runtime (426 MB download on first use)...", flush=True)
+        archive = folder / archive_name
+        download(f"https://github.com/ggml-org/llama.cpp/releases/download/b12600/{archive_name}",
+                 archive, ARCHIVE_SIZES[archive_name], record["sha256"])
+        with tempfile.TemporaryDirectory(dir=state) as temp:
+            stage = Path(temp) / "bin"
+            stage.mkdir()
+            with ZipFile(archive) as source:
+                for name in record["files"]:
+                    matches = [item for item in source.infolist() if Path(item.filename).name == name]
+                    if len(matches) != 1:
+                        raise ValueError(f"Expected one {name} in the CUDA runtime")
+                    with source.open(matches[0]) as src, (stage / name).open("xb") as dst:
+                        shutil.copyfileobj(src, dst)
+            stage.rename(runtime)
+    configured = dict(env, BOVARY_CUDA_EXE=str(worker),
+                      PATH=str(runtime) + os.pathsep + env.get("PATH", ""))
+    return configured if gemma_preset(home, configured) != "cpu-only" else None
 
 
 def download(url, destination, size, digest):

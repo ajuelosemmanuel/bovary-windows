@@ -18,4 +18,6 @@ python launcher/build_kit.py `
 
 Set the release and build directories and use the asset names for the version you are packaging. The builder verifies the approved input hashes and embeds a checksum manifest for the two release files. CUDA dependencies and model weights download during setup.
 
+For a CUDA-first Gemma kit, build the [Gemma CUDA worker](../docs/reproducibility.md#build-and-try-the-cuda-worker) from the pinned checkout in a neutral directory. Supply its executable using `--gemma-cuda-worker`, the approved native build digest using `--gemma-cuda-sha256`, and the toolkit's `LICENSE` file using `--gemma-cuda-license`. The launcher probes the NVIDIA driver and worker before choosing its backend. The automatic profile targets the tested 6 GB GPU class, compute capability 8.6 or newer, and a CUDA 13 driver. On first use it fetches the pinned 426 MB runtime archive. Choose **C** for CPU-only, including on NVIDIA laptops.
+
 Run `python -m unittest discover -s launcher -p test_build_kit.py -v` to check ZIP assembly and the embedded checksum handshake without models. Follow the [release review](../docs/release-review.md) for the Windows hardware test.

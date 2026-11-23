@@ -19,6 +19,7 @@ ARCHIVE = "@CPU_ARCHIVE@"
 WHEEL = "@WHEEL@"
 MANIFEST_HASH = "@MANIFEST_SHA256@"
 BOOTSTRAP_MARKER = "@INSTALL_MARKER@"
+GEMMA_CUDA_SHA256 = "@GEMMA_CUDA_SHA256@"
 
 
 def run(*args, **options):
@@ -130,25 +131,26 @@ def main():
         install()
         sys.path.extend([str(ROOT / "setup"), str(RUNTIME / "previews/inkling")])
         from ask import ask as ask_inkling
-        from inkling_setup import install as install_inkling
+        from inkling_setup import gemma_cuda_environment, install as install_inkling
         while True:
             print("\nChoose a model to download or use. Already installed models are reused.")
-            print("G  Gemma 26B: faster on our coding pilot; works on CPU. 14.6 GB download, allow 18 GB free.")
+            print("G  Gemma 26B (default): prefer NVIDIA CUDA when available, otherwise CPU.")
+            print("   14.6 GB model, plus 426 MB for CUDA on first use. Allow 20 GB free.")
             print("I  Inkling 2 Mini: stronger on our coding pilot (4/6 vs 3/6), usually slower there.")
             print("   NVIDIA CUDA 13.5-compatible driver, local NTFS SSD. 18.3 GB download including CUDA, allow 39 GB free.")
             print("B  Both: allow 54 GB free for a fresh setup. Switch with /models.")
-            print("E  Use an existing Gemma file     Q  Quit")
+            print("C  Gemma on CPU only     E  Use an existing Gemma file     Q  Quit")
             print("Model terms: https://ai.google.dev/gemma/docs/gemma_4_license")
             print("Inkling model card: https://huggingface.co/ggml-org/Inkling-2-Mini-GGUF")
-            choice = input("Choose G, I, B, E, or Q: ").strip().lower()
+            choice = input("Choose G, I, B, C, E, or Q [G]: ").strip().lower() or "g"
             if choice == "q":
                 return
-            if choice not in {"g", "i", "b", "e"}:
+            if choice not in {"g", "i", "b", "c", "e"}:
                 continue
             try:
                 if choice in {"i", "b"}:
                     install_inkling(STATE, ROOT / "setup")
-                if choice in {"g", "e", "b"}:
+                if choice in {"g", "e", "b", "c"}:
                     model, proof = model_setup(use_existing=choice == "e")
                     env = dict(os.environ, BOVARY_HOME=str(RUNTIME), BOVARY_MODEL=str(model),
                                BOVARY_MODEL_MANIFEST=str(proof))
@@ -161,7 +163,16 @@ def main():
                 if choice not in {"g", "i"}:
                     continue
             inkling = choice == "i"
-            name = "Inkling 2 Mini (CUDA)" if inkling else "Gemma 26B (CPU)"
+            preset = "cpu-only"
+            if not inkling and choice != "c":
+                try:
+                    cuda_env = gemma_cuda_environment(STATE, ROOT / "setup", env, GEMMA_CUDA_SHA256)
+                    if cuda_env is not None:
+                        env, preset = cuda_env, "gpu-prefill-2g"
+                except (OSError, ValueError, RuntimeError, zipfile.BadZipFile, subprocess.SubprocessError) as error:
+                    print(f"Gemma CUDA setup unavailable: {error}. Using CPU.", file=sys.stderr)
+            name = ("Inkling 2 Mini (CUDA)" if inkling else
+                    "Gemma 26B (CUDA)" if preset != "cpu-only" else "Gemma 26B (CPU)")
             print(f"\n{name} ready. Press Enter for a sample, type a question, /models to switch, or /quit.")
             while True:
                 prompt = input("\nAsk Bovary: ").strip()
@@ -177,10 +188,12 @@ def main():
                     except (ValueError, OSError, RuntimeError, subprocess.SubprocessError) as error:
                         print(f"Inkling request failed: {error}", file=sys.stderr)
                 else:
-                    result = subprocess.run([PYTHON, "-I", "-m", "bovary", "mini", "--preset", "cpu-only",
+                    result = subprocess.run([PYTHON, "-I", "-m", "bovary", "mini", "--preset", preset,
                                              "--prompt", prompt], env=env)
                     if result.returncode:
                         print("This request did not finish. See the message above.")
+                        if preset != "cpu-only":
+                            print("Type /models and choose C to retry on CPU.")
 
 
 if __name__ == "__main__":

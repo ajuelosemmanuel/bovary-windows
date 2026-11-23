@@ -10,6 +10,8 @@ Run Gemma 26B or Inkling 2 Mini on your Windows laptop. Turn a note into a check
 
 ## Start Bovary on Windows
 
+The linked a16 ZIP runs Gemma on CPU and Inkling on CUDA. The [new launcher build](launcher/README.md) also runs Gemma on CUDA by default on a compatible NVIDIA GPU, with CPU fallback and a CPU-only choice.
+
 The a16 launcher requires Windows x64 and a CPU with AVX2/FMA. Inkling also needs the NVIDIA driver and SSD listed below. Initial setup uses the internet to fetch dependencies and any model you select.
 
 1. Choose **Extract All**, then double-click **Start Bovary.cmd** in the extracted folder. The launcher offers to install 64-bit Python and the Microsoft x64 Visual C++ runtime if needed.
@@ -59,7 +61,7 @@ Check for a complete result. Sam should still have the hall by Tuesday, Lee shou
 
 Share your hardware, which command you used, the status, and which details the answer kept. Use `elapsed_s` from Mini or `timing.end_to_end_s` from the longer command. If a step failed, include that step and a redacted error. [Report your laptop results](https://github.com/ajuelosemmanuel/bovary-windows/issues/new?title=%5BWindows%20review%5D%20School%20fair%20checklist&body=Laptop%20model%3A%0ACPU%20or%20GPU%3A%0ARAM%3A%0ACommand%20used%20%28Mini%20or%20longer%20CPU%20command%29%3A%0AStatus%3A%0AElapsed%20seconds%3A%0A%0AChecklist%20results%0A-%20Sam%20books%20the%20hall%20by%20Tuesday%3A%0A-%20Lee%20prints%20the%20posters%20by%20Friday%3A%0A-%20The%20folding%20tables%20remain%20open%20without%20a%20new%20owner%20or%20deadline%3A%0A%0AFirst%20setup%20blocker%2C%20if%20any%20%28step%20and%20redacted%20error%29%3A%0A)
 
-## Measured speed and memory on a 6 GB GPU
+## Gemma speed and memory on a 6 GB GPU
 
 On an RTX 3060 Laptop GPU with 6 GB of VRAM, Mini finished a Python edit in a median **19.25 seconds** at the default host-cache setting. Median peak system RAM for the native inference worker was **635 MiB**. The CUDA worker keeps frequently used expert weights on the GPU and streams others from SSD. An optional host cache uses additional system RAM to cut SSD reads.
 

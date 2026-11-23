@@ -60,6 +60,7 @@ python/bovary/__main__.py
 python/bovary/checkpoint.py
 python/bovary/cli.py
 python/bovary/contract.py
+python/bovary/cuda_default.py
 python/bovary/data/decision_policy.json
 python/bovary/evaluation.py
 python/bovary/evidence.py

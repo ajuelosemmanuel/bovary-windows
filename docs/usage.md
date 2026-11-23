@@ -114,7 +114,7 @@ Missing models or binaries produce explicit errors. Bovary does not silently swi
 ### Mini mode
 
 Use `bovary mini` for independent tasks that should release the 26B Gemma worker as soon as they finish.
-CPU is the default. To opt in to CUDA, build the regular CUDA worker using the [build guide](reproducibility.md). For a wheel installation, point `BOVARY_CUDA_EXE` at the resulting `bovary-infer.exe`, make its CUDA runtime dependencies available, and select `--preset gpu-prefill-2g`. On a compatible hybrid Windows CPU, add `--performance-cores`.
+Mini automatically selects a compatible Gemma CUDA worker when available and uses CPU otherwise. Choose `--preset cpu-only` to force CPU. To build a CUDA worker, use the [build guide](reproducibility.md). For a wheel installation, point `BOVARY_CUDA_EXE` at the resulting `bovary-infer.exe`, make its CUDA runtime dependencies available, and select `--preset gpu-prefill-2g`. On a compatible hybrid Windows CPU, add `--performance-cores`.
 
 **Packed SSD preview.** The development experiment uses a separate reader and a 12.85 GB copy of the routed expert weights. The alpha CPU and regular CUDA paths read the original GGUF. Benchmark figures for the packed layout apply only to that experimental reader.
 From the project root, start a low-RAM session on the laptop's CUDA worker:
@@ -193,7 +193,7 @@ The edit returned the same 69 output tokens in all six runs. The shorter
 clamp took 7.41 and 7.87 seconds in one pair. Each trial started a fresh CUDA
 worker on performance cores. Windows file cache state was uncontrolled.
 
-Use `--prompt` once for a single task, or repeat it up to eight times to share one model load across a batch. Each task has a fresh 2,048-token context, two CPU threads, and a 96-token default answer cap (adjustable with `--tokens` up to 256). A task or batch has a shared 180-second inference deadline. Use `--context-file` to supply one UTF-8 file of up to 8 KiB, and `--json` for cache, timing, and completion status. The default preset uses the CPU. The explicit `balanced` preset shifts work onto the NVIDIA GPU and streams weights from storage.
+Use `--prompt` once for a single task, or repeat it up to eight times to share one model load across a batch. Each task has a fresh 2,048-token context, two CPU threads, and a 96-token default answer cap (adjustable with `--tokens` up to 256). A task or batch has a shared 180-second inference deadline. Use `--context-file` to supply one UTF-8 file of up to 8 KiB, and `--json` for cache, timing, and completion status. The default `auto` preset reports the selected profile in the Mini JSON result. The explicit `balanced` preset shifts work onto the NVIDIA GPU and streams weights from storage.
 
 If a worker stops after generating part of an answer, Mini’s JSON failure row includes its `attempt`. Inspect `attempt.text` for the partial answer and `attempt.timing` for elapsed time. A plain-text batch prints the partial answer to stdout and the failure message to stderr.
 

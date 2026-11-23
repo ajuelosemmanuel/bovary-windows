@@ -1,6 +1,6 @@
 # Ask Bovary from Codex
 
-Use `ask_bovary` to send a short question, note, or code snippet to either local model. Choose `model="gemma"` for Gemma 26B on CPU (the default), or `model="inkling"` for Inkling 2 Mini on NVIDIA CUDA. For example, ask Codex, “Use Bovary with Inkling to review this function.”
+Use `ask_bovary` to send a short question, note, or code snippet to either local model. Gemma 26B is the default model. With Mini installed from this checkout it uses an available compatible CUDA worker, otherwise CPU. The released a16 wheel defaults to CPU. Choose `model="inkling"` for Inkling 2 Mini on NVIDIA CUDA.
 
 The adapter starts over stdio. It loads the worker on demand and releases it after a request. Mini accepts up to 8192 UTF-8 input bytes and 1–256 output tokens. The calling MCP client receives the generated text.
 

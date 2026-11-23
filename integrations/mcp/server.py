@@ -1,4 +1,4 @@
-"""Serve local Gemma CPU and optional Inkling CUDA inference over MCP stdio."""
+"""Serve local Gemma and optional Inkling inference over MCP stdio."""
 
 from pathlib import Path
 import sys
@@ -12,7 +12,7 @@ from pydantic import Field
 
 
 server = FastMCP("Bovary")
-agent = MiniAgent(preset="cpu-only")
+agent = MiniAgent()
 inference_lock = anyio.Lock()
 
 
@@ -32,7 +32,7 @@ async def ask_bovary(
     max_tokens: Annotated[int, Field(ge=1, le=256)] = 96,
     model: Literal["gemma", "inkling"] = "gemma",
 ) -> str:
-    """Ask Gemma 26B (CPU, default) or Inkling 2 Mini (CUDA preview).
+    """Ask Gemma 26B (default model) or Inkling 2 Mini (CUDA preview).
 
     Input is limited to 8192 UTF-8 bytes. The reply is model-generated text.
     """

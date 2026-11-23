@@ -15,6 +15,7 @@ ROOT = HERE.parent
 PREVIEW = ROOT / "previews" / "inkling"
 NATIVE = ("bovary-infer.exe", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll", "llama.dll")
 JSONHPP_SHA256 = "c0d068392ea65358b798b8c165103560f06e9e3b38c4ab4e2d8810a7b931af86"
+CUDA_TOOLKIT_LICENSE_SHA256 = "088381bc2d891e719a2a9398645b00bb45f3b24231473a8283ac7e3e66b8a028"
 HASH = re.compile(r"[0-9a-fA-F]{64}")
 PRIVATE_PATH = re.compile(rb"[a-z]:[/\\]users[/\\]", re.IGNORECASE)
 CPU_REQUIRED = {
@@ -49,7 +50,8 @@ def checked_bytes(path, expected):
     return data
 
 
-def build_kit(*, wheel, cpu_archive, checksums, native_bin, native_checksums, jsonhpp_license, output):
+def build_kit(*, wheel, cpu_archive, checksums, native_bin, native_checksums, jsonhpp_license,
+              output, gemma_cuda_worker=None, gemma_cuda_sha256=None, gemma_cuda_license=None):
     version = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
     if (wheel.name, cpu_archive.name) != (f"bovary-{version}-py3-none-any.whl", f"bovary-{version}-cpu-review.zip"):
         raise ValueError(f"Expected the wheel and CPU review ZIP for Bovary {version}")
@@ -75,6 +77,7 @@ def build_kit(*, wheel, cpu_archive, checksums, native_bin, native_checksums, js
         "@CPU_ARCHIVE@": cpu_archive.name,
         "@WHEEL@": wheel.name,
         "@MANIFEST_SHA256@": sha256(manifest),
+        "@GEMMA_CUDA_SHA256@": (gemma_cuda_sha256 or "").lower(),
         "@INSTALL_MARKER@": f"installed-{version}-{sha256(manifest)[:16]}",
     }.items():
         if setup.count(marker) != 1:
@@ -86,6 +89,7 @@ def build_kit(*, wheel, cpu_archive, checksums, native_bin, native_checksums, js
         "setup/friend_setup.py": setup.encode("utf-8"),
         "setup/inkling_setup.py": (HERE / "inkling_setup.py").read_bytes(),
         "setup/ask.py": (PREVIEW / "ask.py").read_bytes(),
+        "setup/cuda_default.py": (ROOT / "python/bovary/cuda_default.py").read_bytes(),
         "setup/SHA256SUMS.txt": manifest,
         **{f"setup/{name}": data for name, data in (payloads | notices).items()},
         **{f"setup/inkling-native/{name}": data for name, data in native.items()},
@@ -93,6 +97,14 @@ def build_kit(*, wheel, cpu_archive, checksums, native_bin, native_checksums, js
         "setup/inkling-native/llama.cpp-MIT.txt": (PREVIEW / "llama.cpp-MIT.txt").read_bytes(),
         "setup/inkling-native/LICENSE-jsonhpp": checked_bytes(jsonhpp_license, JSONHPP_SHA256),
     }
+    if any((gemma_cuda_worker, gemma_cuda_sha256, gemma_cuda_license)):
+        if not all((gemma_cuda_worker, gemma_cuda_sha256, gemma_cuda_license)):
+            raise ValueError("Supply the Gemma CUDA worker, its SHA-256, and the toolkit license together")
+        worker = checked_bytes(gemma_cuda_worker, gemma_cuda_sha256)
+        if PRIVATE_PATH.search(worker.replace(b"\x00", b"")):
+            raise ValueError("Private Windows build path in Gemma CUDA worker")
+        members["setup/gemma-cuda/bovary-infer.exe"] = worker
+        members["setup/gemma-cuda/CUDA-LICENSE.txt"] = checked_bytes(gemma_cuda_license, CUDA_TOOLKIT_LICENSE_SHA256)
     # Fixed member metadata makes identical input bytes produce the same archive.
     with ZipFile(output, "x") as kit:
         for name, data in members.items():
@@ -110,6 +122,9 @@ def main():
     parser.add_argument("--native-checksums", required=True, type=Path, help="JSON manifest from the approved native build")
     parser.add_argument("--jsonhpp-license", required=True, type=Path, help="licenses/LICENSE-jsonhpp from the pinned engine")
     parser.add_argument("--output", required=True, type=Path, help="New launcher ZIP")
+    parser.add_argument("--gemma-cuda-worker", type=Path, help="Neutral-path Windows Gemma CUDA build")
+    parser.add_argument("--gemma-cuda-sha256", help="Approved digest of the Gemma CUDA executable")
+    parser.add_argument("--gemma-cuda-license", type=Path, help="LICENSE from the pinned CUDA 13.3.1 toolkit")
     args = parser.parse_args()
     try:
         build_kit(**vars(args))

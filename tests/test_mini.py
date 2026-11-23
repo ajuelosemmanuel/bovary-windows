@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
 from bovary import cli
+from bovary import cuda_default
 from bovary.contract import ExecutionError, Result
 from bovary.mini import MiniAgent, replace_expression
 
@@ -36,7 +37,30 @@ class Worker:
 class MiniTests(unittest.TestCase):
     def setUp(self):
         self.worker = Worker()
-        self.agent = MiniAgent(worker_factory=lambda: self.worker)
+        self.agent = MiniAgent(preset="cpu-only", worker_factory=lambda: self.worker)
+
+    def test_auto_prefers_a_working_cuda_worker_and_preserves_cpu_override(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            worker = home / "gpu.exe"
+            worker.touch()
+            env = {"BOVARY_CUDA_EXE": worker.name}
+            with patch.object(cuda_default, "compatible_device", return_value=False), patch.object(
+                    cuda_default.subprocess, "run") as probe:
+                self.assertEqual(cuda_default.gemma_preset(home, env), "cpu-only")
+                probe.assert_not_called()
+            with patch.object(cuda_default, "compatible_device", return_value=True), patch.object(
+                    cuda_default.subprocess, "run") as probe:
+                probe.return_value = Mock(returncode=0, stdout=b"bovary-worker 2\n")
+                self.assertEqual(cuda_default.gemma_preset(home, env), "gpu-prefill-2g")
+                probe.return_value.returncode = 1
+                self.assertEqual(cuda_default.gemma_preset(home, env), "cpu-only")
+        with patch("bovary.mini.gemma_preset", return_value="gpu-prefill-2g") as select:
+            agent = MiniAgent(worker_factory=lambda: self.worker)
+            self.assertEqual(agent.run("answer")["preset"], "gpu-prefill-2g")
+            self.assertTrue(self.worker.requests[-1].allow_gpu)
+            self.assertEqual(MiniAgent("cpu-only").preset, "cpu-only")
+            select.assert_called_once()
 
     def test_exact_hits_skip_model_and_source_changes_miss(self):
         with tempfile.TemporaryDirectory() as directory:

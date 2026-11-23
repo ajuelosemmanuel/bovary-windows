@@ -6,6 +6,7 @@ from contextlib import ExitStack
 from functools import partial
 import hashlib
 import json
+import os
 from pathlib import Path
 import sys
 import threading
@@ -15,6 +16,8 @@ from .checkpoint import PinnedGemma
 from .cli import configure_input
 from .contract import ExecutionError, MAX_HOST_CACHE_MIB, Request, STREAMING_GPU_PROFILES
 from .local import windows_performance_core_mask
+from .cuda_default import gemma_preset
+from .runtime import project_home
 
 
 CONTEXT_TOKENS = 2048
@@ -113,7 +116,9 @@ def _print_failure(error, json_output):
 class MiniAgent:
     """One short-lived worker per task or explicit batch. Answers stay in this session."""
 
-    def __init__(self, preset="cpu-only", worker_factory=PinnedGemma, *, host_cache_mib=0):
+    def __init__(self, preset="auto", worker_factory=PinnedGemma, *, host_cache_mib=0):
+        if preset == "auto":
+            preset = gemma_preset(project_home(), os.environ)
         if preset not in PRESETS:
             raise ValueError("Unknown mini preset")
         if (type(host_cache_mib) is not int or not 0 <= host_cache_mib <= MAX_HOST_CACHE_MIB
@@ -163,6 +168,7 @@ class MiniAgent:
                         if not capture_errors:
                             raise
                         row = _failure_row(exc)
+                    row["preset"] = self.preset
                     row["elapsed_s"] = time.monotonic() - started
                     rows.append(row)
                 cleanup_start = time.monotonic()
@@ -196,7 +202,8 @@ def main(argv=None):
     parser.add_argument("--prompt", action="append", help="One task. Repeat for a series, or omit for interactive input.")
     parser.add_argument("--context-file", type=Path, help="Read this small UTF-8 file afresh for each task")
     parser.add_argument("--replace-expr", metavar="EXPR", help="Generate just this expression's replacement and print the reconstructed Python source")
-    parser.add_argument("--preset", choices=PRESETS, default="cpu-only")
+    parser.add_argument("--preset", choices=("auto", *PRESETS), default="auto",
+                        help="Default: use the compatible Gemma CUDA worker when available, otherwise CPU")
     parser.add_argument("--performance-cores", action="store_true",
                         help="Pin the worker to performance cores on hybrid Windows")
     parser.add_argument("--host-cache-mib", type=int, default=0, metavar="MIB",
@@ -204,6 +211,8 @@ def main(argv=None):
     parser.add_argument("--tokens", type=int, default=96)
     parser.add_argument("--json", action="store_true", help="Write one result per line")
     args = parser.parse_args(argv)
+    if args.preset == "auto":
+        args.preset = gemma_preset(project_home(), os.environ)
     if args.replace_expr is not None and (args.context_file is None or len(args.prompt or []) != 1):
         parser.error("--replace-expr requires --context-file and exactly one --prompt")
     if not 1 <= args.tokens <= 256:

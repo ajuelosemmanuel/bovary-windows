@@ -124,6 +124,34 @@ class InklingSetupTest(unittest.TestCase):
         with patch.object(sys, "path", [str(ROOT / "previews/inkling"), *sys.path]):
             spec.loader.exec_module(self.setup)
 
+    def test_gemma_stages_only_runtime_and_reuses_it(self):
+        worker = self.path / "gemma-cuda/bovary-infer.exe"
+        worker.parent.mkdir()
+        worker.write_bytes(b"fixture worker")
+        expected = sha256(worker.read_bytes())
+        env = {"BOVARY_HOME": str(self.path)}
+        archive_name = "cudart-llama-bin-win-cuda-13.5-x64.zip"
+        folder = self.path / "inkling"
+        folder.mkdir()
+        archive = folder / archive_name
+        with ZipFile(archive, "w") as output:
+            output.writestr("bin/cudart64_13.dll", b"fixture DLL")
+        record = {"sha256": sha256(archive.read_bytes()), "files": ["cudart64_13.dll"]}
+        probe = SimpleNamespace(compatible_device=lambda: False, gemma_preset=lambda *_: "cpu-only")
+        with patch.dict(sys.modules, {"cuda_default": probe}), patch.dict(
+                self.setup.LOCK["cuda_archives"], {archive_name: record}), patch.object(
+                self.setup, "download", wraps=self.setup.download) as download:
+            self.assertIsNone(self.setup.gemma_cuda_environment(self.path, self.path, env, expected))
+            download.assert_not_called()
+            probe.compatible_device = lambda: True
+            probe.gemma_preset = lambda _, env: "gpu-prefill-2g" if "BOVARY_CUDA_EXE" in env else "cpu-only"
+            for _ in range(2):
+                selected = self.setup.gemma_cuda_environment(self.path, self.path, env, expected)
+                self.assertEqual(selected["BOVARY_CUDA_EXE"], str(worker))
+                runtime = Path(selected["PATH"].split(self.setup.os.pathsep)[0])
+                self.assertEqual((runtime / "cudart64_13.dll").read_bytes(), b"fixture DLL")
+            download.assert_called_once()
+
     def test_retry_verifies_and_publishes_resumed_download(self):
         url = "https://example.test/model"
         model = self.path / "test.gguf"

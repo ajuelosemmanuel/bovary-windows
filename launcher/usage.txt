@@ -1,7 +1,9 @@
 Extract All, open the folder and double-click Start Bovary.cmd.
 Windows x64 and an AVX2/FMA CPU are required. Initial setup needs an internet connection.
-Choose G to download Gemma, I for Inkling, B for both, or E to use the pinned Gemma file you
-already have. Type /models to switch later. Allow 18 GB free for Gemma. Inkling requires a
+Press Enter for Gemma. It uses CUDA on a compatible NVIDIA GPU when the Gemma CUDA worker
+is available. First use downloads 426 MB of NVIDIA libraries when needed. Otherwise Gemma
+uses CPU. Choose C to force CPU, I for Inkling, B for both, or E to use your existing Gemma file.
+Type /models to switch later. Allow 20 GB free for Gemma with CUDA. Inkling requires a
 CUDA 13.5-compatible NVIDIA driver and a local NTFS SSD. Allow 39 GB for Inkling or 54 GB for both.
 In a six-task coding pilot, Inkling solved four tasks and Gemma solved three.
 Median answer time was 55 seconds for Inkling and 14 seconds for Gemma on those prompts.
