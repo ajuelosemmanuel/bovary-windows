@@ -313,7 +313,7 @@ def collect(root, allowlist):
         if (
             source.suffix.lower() not in ALLOWED_SUFFIXES
             and source.name not in {"LICENSE", "MANIFEST.in", ".gitignore", ".gitattributes"}
-            and name != "docs/images/bovary-mini-repair-demo.gif"
+            and name not in {"docs/images/bovary-mini-repair-demo.gif", "launcher/windows-setup.iss"}
         ):
             raise ValueError(f"Unapproved public source type: {name}")
         with source.open("rb") as stream:
