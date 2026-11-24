@@ -4,7 +4,7 @@
 
 # How much AI can you run on the laptop you already own?
 
-Run Gemma 26B or Inkling 2 Mini on your Windows laptop. Turn a note into a checklist, ask about a function, or try the same question with both models. Once setup finishes, your prompts and answers stay on your machine.
+Use Bovary to draft a reply to a tricky email, pull deadlines out of meeting notes, or make sense of unfamiliar code. After the initial download, you can do it all offline on your Windows laptop, and what you type stays on your machine.
 
 **[Install Bovary for Windows x64](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-x64-setup.exe)** · [Installer checksum](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-x64-setup.exe.sha256) · [Portable ZIP](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-cuda-x64.zip)
 
