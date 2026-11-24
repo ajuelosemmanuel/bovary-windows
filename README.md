@@ -10,6 +10,14 @@ After setup, you can draft a reply to a tricky email, pull deadlines out of meet
 
 **[Install Bovary for Windows x64](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-x64-setup.exe)** · [Installer checksum](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-x64-setup.exe.sha256) · [Portable ZIP](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-cuda-x64.zip)
 
+## How does a 14.6 GB model run with so little RAM?
+
+The full Gemma model stays on your SSD. Gemma is a *mixture of experts*: for each token it generates, it selects a few groups of weights called experts. Bovary reads the selected weights as it needs them. On a compatible NVIDIA GPU, it also keeps frequently used weights in video memory so it can reuse them. The trade-off is speed: fetching weights from storage takes time, and a slower drive can mean a longer wait for an answer.
+
+The **635 MiB** figure measures the Windows working set of the process running Gemma during one coding benchmark. Your laptop also uses memory for Windows, its file cache, and the launcher. GPU memory is separate. On our test laptop, peak GPU memory use across all apps was **5,040 MiB**. [See the hardware, timings, and RAM measurements](#gemma-speed-and-memory-on-a-6-gb-gpu).
+
+You can check the offline claim yourself. Once setup finishes and your model is ready, disconnect from the network and ask a new question about a sentence you just wrote.
+
 ## Start Bovary on Windows
 
 Press **Enter** at the model menu for Gemma. Bovary selects CUDA on a compatible NVIDIA GPU and shows **Gemma 26B (CUDA)** when ready. If the setup or device check fails, it selects CPU. Choose **C** to force CPU, including on an NVIDIA laptop.
