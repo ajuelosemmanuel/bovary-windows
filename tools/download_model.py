@@ -107,8 +107,9 @@ def _download_locked(directory, manifest=None):
         have = partial.stat().st_size if partial.exists() else 0
         if have > SIZE:
             raise RuntimeError("Partial file exceeds pinned size; preserved for review")
-        if shutil.disk_usage(directory).free < SIZE - have + 3 * 1024**3:
-            raise RuntimeError("Insufficient disk space including 3 GiB reserve")
+        needed = SIZE - have + 3 * 1024**3
+        if shutil.disk_usage(directory).free < needed:
+            raise RuntimeError(f"Gemma needs {needed / 1e9:.1f} GB free on {directory} including the 3 GiB reserve")
         for attempt in range(12):
             have = partial.stat().st_size if partial.exists() else 0
             if have == SIZE:

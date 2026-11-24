@@ -1,3 +1,13 @@
+# Bovary 0.2.0a18 Windows alpha
+
+**[Install Bovary for Windows x64](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a18/bovary-0.2.0a18-windows-x64-setup.exe)** · [Installer checksum](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a18/bovary-0.2.0a18-windows-x64-setup.exe.sha256) · [Portable ZIP](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a18/bovary-0.2.0a18-windows-cuda-x64.zip)
+
+Run setup and open **Bovary Mini** from the Start menu. The per-user installer is unsigned. At the model menu, choose **S** to select a folder on another drive, **T** to test your laptop with Gemma, or press **Enter** to ask a question. Gemma uses CUDA on compatible NVIDIA laptops and CPU otherwise. Type `/keep` in Gemma before asking related questions; `/unload` releases the model and clears the conversation.
+
+The [README](README.md) includes the hardware requirements, free disk space for each model, and the benchmark procedure. Inside the kit, `setup/gemma-cuda/` contains the NVIDIA, CCCL and CUB notices. Inkling engine notices are under `setup/inkling-native/`.
+
+---
+
 # Bovary 0.2.0a17 Windows alpha
 
 **[Windows x64 installer](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-x64-setup.exe)** · [Installer SHA-256](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-x64-setup.exe.sha256)

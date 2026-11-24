@@ -111,12 +111,26 @@ def verify_model(model, manifest=None):
     return write_manifest(manifest, verify_file(model))
 
 
+def check_model(model, manifest):
+    """Check a launcher's receipt lookup without hashing the checkpoint."""
+    expected = expected_manifest(model.name)
+    proof = existing_manifest(manifest, expected)
+    if proof is None or any(proof.get(key) != expected[key] for key in ("repository", "revision", "sha256")):
+        raise ValueError("Checkpoint verification receipt is missing or describes another checkpoint")
+    # Inference independently checks the binding, including any required full hash.
+    check_binding(model, proof, allow_full_hash=False)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", type=Path, default=Path("work/models")/NAME)
     parser.add_argument("--manifest", type=Path, help="Default: model-provenance.json beside the model")
+    parser.add_argument("--check", action="store_true", help="Check an existing verification receipt")
     args = parser.parse_args(argv)
     try:
+        if args.check:
+            check_model(args.model, args.manifest or args.model.parent / "model-provenance.json")
+            return 0
         metadata = verify_model(args.model, args.manifest)
     except (OSError, ValueError) as error:
         parser.exit(2, f"Verification failed: {error}\n")

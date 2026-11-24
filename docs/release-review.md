@@ -2,7 +2,7 @@
 
 `public-files.txt` is the exact proposed first-commit allowlist. It excludes the entire live `work/` and `outputs/` trees, including model weights, CUDA archives, private settings/prompts/responses, token/logit dumps, raw logs, credentials and local source snapshots. The retained research workspace is not moved or deleted. Historical results are exported selectively to `reports/` with relative paths and selected numeric fields only.
 
-The [0.2.0a17 Windows release](https://github.com/ajuelosemmanuel/bovary-windows/releases/tag/v0.2.0a17) provides the model-choice launcher ZIP, Python wheel and CPU runtime archive. The [launcher source](../launcher/) handles installation, model selection and prompts. The commands below prepare and validate the source and CPU review artifacts. See the [candidate assessment](implementation-assessment.md) for the scope of verification, and follow [the security policy](../SECURITY.md) when sharing diagnostics.
+The [0.2.0a18 Windows release](https://github.com/ajuelosemmanuel/bovary-windows/releases/tag/v0.2.0a18) provides the model-choice launcher ZIP, Python wheel and CPU runtime archive. The [launcher source](../launcher/) handles installation, model selection and prompts. The commands below prepare and validate the source and CPU review artifacts. See the [candidate assessment](implementation-assessment.md) for the scope of verification, and follow [the security policy](../SECURITY.md) when sharing diagnostics.
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/prepare_release.py --check

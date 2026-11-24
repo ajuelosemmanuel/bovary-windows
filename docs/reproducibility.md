@@ -119,3 +119,41 @@ if ($LASTEXITCODE -ne 0) { throw "Release suite failed." }
 ```
 
 On Windows, the venv `python.exe` may redirect to a separate interpreter process and retain inherited pipe handles. Closing fd 0 in that interpreter does not close the redirector's copy; killing and waiting for the redirector does not synchronize with the actual lock owner's death. The closed-stdin and downloader-death fixtures use `sys._base_executable` for their standard-library-only children. The downloader flushes its PID to stdout before publishing readiness and asserts it equals the process being killed. Other worker tests still exercise venv launchers and owned process-tree cleanup. Production code needs no retry or error reclassification for these fixture errors. Never delete the stable lock file or retry a live owner's contention to obtain a passing result.
+
+## Test my laptop
+
+Choose **Test my laptop** from Start Bovary to try the installed Gemma checkpoint with three built-in questions of increasing length. The test uses the usual CUDA selection and CPU fallback, then prints a local summary and shareable JSON. The JSON contains hardware model names, the checkpoint digest, timings, memory counters and correctness flags. It omits paths, prompts, answers, hostnames and device identifiers. Once the verified model and runtime are ready, the test runs offline.
+
+Time to first text starts at request submission. The startup case also includes loading a new worker. The two loaded cases keep that worker but use fresh model contexts. Short, exact answers let the test grade arithmetic, an updated meeting day and a corrected locker code in a fictional register. The test uses two CPU threads, a 2,048-token context and a 16-token answer limit.
+
+Peak working set is the OS-reported process high-water mark observed during sampling. Private commit and device-wide NVIDIA framebuffer use are sampled every 200 ms. Device memory includes other applications on GPU 0, so the report includes its pre-start baseline. The read-transfer counter is the process I/O counter. It includes logical reads, excludes memory-mapped page faults and cannot show physical SSD traffic. Unavailable metrics appear as null.
+
+### Same-laptop CUDA control
+
+One serial sequence per engine ran on a Windows laptop with an Intel Core i7-12700H, 31.7 GiB of OS-visible physical RAM and an NVIDIA GeForce RTX 3060 Laptop GPU with 6 GiB VRAM and driver 610.60. Both used the same verified Gemma 4 26B Q4_0 file (SHA-256 `d208665ab1cd3a69f7a9a4bc59430e8448c8093d9b06334f566ac59d6d504a03`). The stock run was immediately before the target Bovary run. Earlier setup checks had already accessed the model. Windows file-cache state was uncontrolled.
+
+Bovary used the a18 benchmark Python code and the Gemma CUDA worker from the a17 Windows CUDA kit (worker SHA-256 `c377018edc0218412041fd5ca83fdbd6f660ee0b446ef0a0538fef6d96bb2e23`), with the `gpu-prefill-2g` profile, host cache off, and a local CUDA 13.3 runtime. Stock llama.cpp used the official b12600 CUDA 13.5 x64 binaries (commit `29b52d398`), CUDA0, automatic VRAM fit with its default 1,024 MiB target margin and memory mapping enabled. It assigned 31/31 layers to CUDA and kept expert tensors in CPU-mapped buffers. The harness sent the identical framed prompt as tokens, used greedy decoding, disabled prompt caching and kept one server slot. The startup latency includes stock server readiness and local HTTP framing. Stock native output counts include EOS, while Bovary output counts omit EOS.
+
+| Measurement | Bovary | Stock llama.cpp |
+| --- | ---: | ---: |
+| Correct fixed answers | 3/3 | 3/3 |
+| 29-token arithmetic case, first text including startup | 5.48 s | 17.13 s |
+| 67-token meeting-note case, loaded first text | 3.76 s | 5.45 s |
+| 158-token dispatch register, loaded first text | 8.15 s | 3.46 s |
+| Median loaded first text across the two cases | 5.96 s | 4.45 s |
+| Peak process working set | 652 MiB | 12,546 MiB |
+| Sampled process private commit | 5,455 MiB | 5,171 MiB |
+| Sampled process read transfers | 32,367 MiB | 155 MiB |
+| Sampled device-wide VRAM peak, from a 962 MiB baseline | 5,397 MiB | 5,061 MiB |
+
+Bovary's direct streaming reduced resident process memory in this run and produced first text sooner during startup. Stock used less sampled private commit and VRAM, and produced first text sooner on the longer loaded case. Stock's mmap-backed working set makes the resident-memory and private-commit readings measure different aspects of memory use. The two short loaded cases and their exact answers support no estimate of sustained decoding speed.
+
+To rerun, use the same verified Gemma file and receipt for both engines. Extract the verified stock Windows CUDA and CUDA runtime archives into one directory. Their archive names and SHA-256 digests are pinned in the [upstream archive record](../previews/inkling/upstream.json). Set the usual Bovary model and CUDA runtime environment as described in [Configuration](configuration.md). From the checkout root, run these PowerShell commands serially with the machine otherwise idle.
+
+```powershell
+$env:PYTHONPATH = Join-Path (Get-Location) python
+python -m bovary.laptop_benchmark --preset gpu-prefill-2g --json-only
+python tools/stock_laptop_control.py $stockServer $env:BOVARY_MODEL $env:BOVARY_MODEL_MANIFEST stock-private.log
+```
+
+Set `$stockServer` to the verified `llama-server.exe` in the extracted directory. The comparison runner needs authenticated loopback access and writes a new private log for the stock configuration details. Share its JSON output since the diagnostic log can contain local paths.

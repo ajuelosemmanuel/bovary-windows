@@ -120,7 +120,9 @@ class BuildKitTest(unittest.TestCase):
         for saved in (saved_paths, "{invalid", "[null, {}]"):
             with self.subTest(saved=saved), patch.object(friend_setup, "STATE", self.path), patch.object(
                 friend_setup, "run", side_effect=verify
-            ) as run, patch("builtins.input", return_value=str(new_model)):
+            ) as run, patch.object(friend_setup, "verified", side_effect=lambda model, _: model == old_model), patch(
+                "builtins.input", return_value=str(new_model)
+            ):
                 settings.write_text(saved, encoding="utf8")
                 if saved == saved_paths:
                     self.assertEqual(friend_setup.model_setup(), (old_model, old_proof))
@@ -132,6 +134,39 @@ class BuildKitTest(unittest.TestCase):
                 self.assertEqual(proof.read_text(encoding="utf8"), "verified")
                 self.assertEqual(json.loads(settings.read_text(encoding="utf8")), [str(model), str(proof)])
                 run.assert_called_once()
+
+    def test_choose_storage_and_reuse_bound_model_without_download(self):
+        folder = self.path / "alternate drive" / "models"
+        with patch.object(friend_setup, "STATE", self.path), patch("builtins.input", return_value=str(folder)):
+            friend_setup.choose_storage()
+            selected, explicit = friend_setup.model_storage()
+            self.assertEqual(selected, folder.resolve())
+            self.assertTrue(explicit)
+            with patch.object(friend_setup, "verified", return_value=True), patch.object(friend_setup, "run") as run:
+                model, receipt = friend_setup.model_setup()
+                run.assert_not_called()
+            self.assertEqual(model, selected / friend_setup.MODEL)
+            self.assertEqual(receipt, selected / "model-provenance.json")
+
+    def test_unavailable_storage_cannot_fall_back_to_download(self):
+        with patch.object(friend_setup, "run") as run:
+            with self.assertRaisesRegex(ValueError, "unavailable"):
+                friend_setup.model_setup(storage=(self.path / "disconnected", True))
+            run.assert_not_called()
+
+    def test_explicit_registration_is_remembered_for_selected_library(self):
+        model = self.path / "Gemma elsewhere.gguf"
+        model.touch()
+        library = self.path / "models"
+        library.mkdir()
+        with patch.object(friend_setup, "STATE", self.path), patch("builtins.input", return_value=str(model)), patch.object(
+            friend_setup, "run"
+        ) as run, patch.object(friend_setup, "verified", side_effect=lambda _, proof: proof.parent == self.path
+                               and proof.name.startswith("verified-")):
+            registered = friend_setup.model_setup(use_existing=True, storage=(library, True))
+            self.assertEqual(registered[0], model)
+            self.assertEqual(friend_setup.model_setup(storage=(library, True)), registered)
+            run.assert_called_once()
 
 
 class InklingSetupTest(unittest.TestCase):
@@ -220,6 +255,27 @@ class InklingSetupTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "free to finish"):
                 self.setup.install(self.path, self.path)
         download.assert_not_called()
+
+    def test_linked_or_oversized_partial_is_preserved(self):
+        model = self.path / "test.gguf"
+        partial = model.with_suffix(".gguf.partial")
+        partial.write_bytes(b"12345")
+        with patch.object(self.setup.subprocess, "run") as run:
+            with self.assertRaisesRegex(ValueError, "Unsafe partial"):
+                self.setup.download("https://example.test/model", model, 3, "unused")
+            self.assertEqual(partial.read_bytes(), b"12345")
+            original_stat = type(partial).stat
+
+            def linked_stat(path, *args, **kwargs):
+                stat = original_stat(path, *args, **kwargs)
+                if path == partial:
+                    return SimpleNamespace(st_mode=stat.st_mode, st_size=stat.st_size, st_nlink=2)
+                return stat
+
+            with patch.object(type(partial), "stat", linked_stat):
+                with self.assertRaisesRegex(ValueError, "Unsafe partial"):
+                    self.setup.download("https://example.test/model", model, 6, "unused")
+            run.assert_not_called()
 
 
 if __name__ == "__main__":

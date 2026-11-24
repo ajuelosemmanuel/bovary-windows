@@ -10,8 +10,8 @@ $gemma = 'C:\bovary-gemma-cuda'
 $toolkit = 'C:\cuda-toolkit'
 $gemmaHash = Read-Host 'Approved SHA-256 for the neutral Gemma CUDA build'
 python launcher/build_kit.py `
-  --wheel (Join-Path $release 'bovary-0.2.0a17-py3-none-any.whl') `
-  --cpu-archive (Join-Path $release 'bovary-0.2.0a17-cpu-review.zip') `
+  --wheel (Join-Path $release 'bovary-0.2.0a18-py3-none-any.whl') `
+  --cpu-archive (Join-Path $release 'bovary-0.2.0a18-cpu-review.zip') `
   --checksums (Join-Path $release 'SHA256SUMS.txt') `
   --native-bin (Join-Path $preview 'native/bin') `
   --native-checksums (Join-Path $preview 'build-identity.json') `
@@ -19,7 +19,7 @@ python launcher/build_kit.py `
   --gemma-cuda-worker (Join-Path $gemma 'work/build/bovary-cuda/bovary-infer.exe') `
   --gemma-cuda-sha256 $gemmaHash `
   --gemma-cuda-license (Join-Path $toolkit 'LICENSE') `
-  --output (Join-Path $release 'bovary-0.2.0a17-windows-cuda-x64.zip')
+  --output (Join-Path $release 'bovary-0.2.0a18-windows-cuda-x64.zip')
 ```
 
 Set the release and build directories and use the asset names for the version you are packaging. The builder verifies the approved input hashes and embeds a checksum manifest for the two release files. CUDA dependencies and model weights download during setup.

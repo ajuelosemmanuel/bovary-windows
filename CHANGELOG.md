@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0a18 (Windows alpha)
+
+- Choose where the launcher stores model downloads and reconnect an existing model library.
+- Keep Gemma loaded for follow-up questions. Clear the conversation with `/new` or release the worker with `/unload`.
+- Measure startup and loaded-request performance on your laptop using fixed prompts with checked answers.
+
 ## 0.2.0a17 (Windows CUDA-first alpha)
 
 - Start Gemma 26B with CUDA automatically when the Windows launcher verifies a compatible NVIDIA driver and CUDA worker.

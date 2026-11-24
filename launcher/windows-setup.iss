@@ -1,8 +1,8 @@
-#define KitName "bovary-0.2.0a17-windows-x64-setup"
+#define KitName "bovary-0.2.0a18-windows-x64-setup"
 [Setup]
 AppId=BovaryMiniWindows
 AppName=Bovary Mini
-AppVersion=0.2.0a17
+AppVersion=0.2.0a18
 AppPublisher=Bovary contributors
 AppPublisherURL=https://github.com/ajuelosemmanuel/bovary-windows
 DefaultDirName={localappdata}\Programs\Bovary Mini

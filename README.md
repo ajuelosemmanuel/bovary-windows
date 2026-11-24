@@ -8,7 +8,7 @@ Bovary streams model weights from your SSD to keep system RAM use low. On a lapt
 
 After setup, you can draft a reply to a tricky email, pull deadlines out of meeting notes, or ask for a plain-English explanation of unfamiliar code. Your prompts and answers stay on your laptop.
 
-**[Install Bovary for Windows x64](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-x64-setup.exe)** · [Installer checksum](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-x64-setup.exe.sha256) · [Portable ZIP](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-cuda-x64.zip)
+**[Install Bovary for Windows x64](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a18/bovary-0.2.0a18-windows-x64-setup.exe)** · [Installer checksum](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a18/bovary-0.2.0a18-windows-x64-setup.exe.sha256) · [Portable ZIP](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a18/bovary-0.2.0a18-windows-cuda-x64.zip)
 
 ## How does a 14.6 GB model run with so little RAM?
 
@@ -24,9 +24,9 @@ Press **Enter** at the model menu for Gemma. Bovary selects CUDA on a compatible
 
 Use Windows x64 and an AVX2/FMA-capable CPU. Automatic Gemma CUDA targets NVIDIA GPUs in the 6 GB VRAM class or larger, with compute capability 8.6 or newer and a CUDA 13-capable driver. Inkling has its own requirements below. Initial setup uses the internet to fetch dependencies and any model you select.
 
-1. Run the downloaded setup, click **Install**, then **Finish** to open Bovary. Choose a drive with space for the models below. This alpha installer is unsigned, so Windows may show a publisher warning. On first launch Bovary offers to install Python and the Microsoft x64 Visual C++ runtime if needed.
-2. Choose a model below, or press **E** to verify and use an existing copy of the pinned Gemma checkpoint. The launcher saves downloads in **Bovary Data** in the installation folder.
-3. Type a question or press Enter for a sample. Type `/models` to return to the model menu and `/quit` to close. Reopen **Bovary Mini** from the Start menu to reuse your downloads. Uninstalling through Windows Settings preserves your model data.
+1. Run the downloaded setup, click **Install**, then **Finish** to open Bovary. This alpha installer is unsigned, so Windows may show a publisher warning. On first launch Bovary offers to install Python and the Microsoft x64 Visual C++ runtime if needed.
+2. Choose **S** if you want the models on a particular SSD, then choose a model below. New downloads default to `%LOCALAPPDATA%\Bovary\Models`. The launcher can reuse earlier downloads. Choose **E** to open an existing Gemma checkpoint.
+3. Type a question or press Enter for a sample. For follow-up questions in Gemma, type `/keep` before your first question. Use `/unload` to clear the conversation and release the model, `/models` to switch, or `/quit` to close. Reopen **Bovary Mini** from the Start menu to reuse your downloads. Uninstalling through Windows Settings preserves your model data.
 
 | Choose | Best fit | Download | Allow free |
 |---|---|---:|---:|
@@ -52,7 +52,7 @@ Here’s the recorded answer from one fresh Windows CPU run. It took **22.66 sec
 
 ## Try it on your laptop
 
-In the launcher, paste the school fair note above and ask for a checklist with owners and deadlines. For timing and diagnostic output, follow the manual instructions below.
+Choose **T · Test my laptop** at the model menu for a local Gemma benchmark. On our RTX 3060 laptop, Bovary and stock llama.cpp both answered all three questions correctly. Bovary reached first text in 5.48 seconds on startup versus 17.13 seconds for stock. With the model loaded, stock was quicker on the longer prompt. [See the per-prompt timings and memory comparison](docs/reproducibility.md#same-laptop-cuda-control). You can also paste the school fair note above and ask for a checklist with owners and deadlines. For timing and diagnostic output, follow the manual instructions below.
 
 After [CPU setup](#install-the-windows-alpha-from-release-files), run the same prompt in the configured PowerShell session. The JSON includes the status, answer text, and any reported error.
 
@@ -95,11 +95,11 @@ These two manual Gemma paths use the same pinned **14.6 GB Gemma checkpoint**. [
 
 Use Windows x64, an AVX2/FMA-capable CPU, and 64-bit Python 3.11 or newer with Tcl/Tk and the `python` command available in PowerShell. The CPU worker needs the Microsoft x64 C++/OpenMP runtime. [Microsoft Visual C++ Redistributable downloads](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/)
 
-Download the wheel, CPU runtime ZIP, and `SHA256SUMS.txt` into one fresh folder, then open PowerShell in that folder. Run each block in this same session and stop if a block reports an error. [0.2.0a17 Windows alpha](https://github.com/ajuelosemmanuel/bovary-windows/releases/tag/v0.2.0a17)
+Download the wheel, CPU runtime ZIP, and `SHA256SUMS.txt` into one fresh folder, then open PowerShell in that folder. Run each block in this same session and stop if a block reports an error. [0.2.0a18 Windows alpha](https://github.com/ajuelosemmanuel/bovary-windows/releases/tag/v0.2.0a18)
 
 ```powershell
-$zip = 'bovary-0.2.0a17-cpu-review.zip'
-$wheel = 'bovary-0.2.0a17-py3-none-any.whl'
+$zip = 'bovary-0.2.0a18-cpu-review.zip'
+$wheel = 'bovary-0.2.0a18-py3-none-any.whl'
 $checksums = @(Get-Content -LiteralPath .\SHA256SUMS.txt -ErrorAction Stop)
 foreach ($file in @($zip, $wheel)) {
     $pattern = '^([a-f0-9]{64})\s+' + [regex]::Escape($file) + '$'

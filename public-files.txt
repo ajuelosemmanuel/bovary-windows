@@ -69,8 +69,10 @@ python/bovary/data/decision_policy.json
 python/bovary/evaluation.py
 python/bovary/evidence.py
 python/bovary/gui.py
+python/bovary/laptop_benchmark.py
 python/bovary/local.py
 python/bovary/mini.py
+python/bovary/launcher_chat.py
 python/bovary/modelproof.py
 python/bovary/policy.py
 python/bovary/provider.py
@@ -135,6 +137,7 @@ tools/make_pool_config.py
 tools/make_quant_config.py
 tools/prune_scratch.py
 tools/quality_eval.py
+tools/stock_laptop_control.py
 tools/report_results.py
 tools/verify_mixed.py
 tools/verify_model.py
@@ -144,6 +147,7 @@ tests/test_cli_unicode.py
 tests/test_local_lifecycle.py
 tests/test_doctor.py
 tests/test_gui_setup.py
+tests/test_laptop_benchmark.py
 docs/images/bovary.png
 docs/usage.md
 docs/use-cases.md

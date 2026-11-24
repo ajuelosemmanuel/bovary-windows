@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bovary"
-version = "0.2.0a17"
-description = "Windows-first local inference workbench with controlled commercial routing"
+version = "0.2.0a18"
+description = "Run local AI models on Windows with SSD streaming and optional NVIDIA acceleration"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []

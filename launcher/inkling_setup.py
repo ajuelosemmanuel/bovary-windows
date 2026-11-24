@@ -40,6 +40,8 @@ def gemma_cuda_environment(state, payload, env, worker_digest):
     if not runtime.is_dir():
         print("Preparing the Gemma CUDA runtime (426 MB download on first use)...", flush=True)
         archive = folder / archive_name
+        needed = 600_000_000 + remaining(archive, ARCHIVE_SIZES[archive_name])
+        disk_preflight(((folder, needed),), label="Gemma CUDA setup")
         download(f"https://github.com/ggml-org/llama.cpp/releases/download/b12600/{archive_name}",
                  archive, ARCHIVE_SIZES[archive_name], record["sha256"])
         with tempfile.TemporaryDirectory(dir=state) as temp:
@@ -63,9 +65,18 @@ def download(url, destination, size, digest):
         verify(destination, digest)
         return
     partial = destination.with_suffix(destination.suffix + ".partial")
-    if not partial.exists() or partial.stat().st_size < size:
+    if partial.is_symlink():
+        raise ValueError(f"Partial download is a symbolic link: {partial}")
+    have = 0
+    if partial.exists():
+        stat = partial.stat()
+        if not partial.is_file() or stat.st_nlink > 1 or stat.st_size > size:
+            raise ValueError(f"Unsafe partial download preserved: {partial}")
+        have = stat.st_size
+    if have < size:
         subprocess.run(["curl.exe", "--disable", "--fail", "--location", "--proto", "=https",
                         "--proto-redir", "=https", "--retry", "3", "--connect-timeout", "30",
+                        "--max-filesize", str(size),
                         "--continue-at", "-", "--output", str(partial), url], check=True)
     if partial.stat().st_size != size:
         raise ValueError(f"Unexpected size for {partial.name}. Remove that partial file and retry.")
@@ -76,7 +87,26 @@ def download(url, destination, size, digest):
     partial.rename(destination)
 
 
-def install(state, payload):
+def remaining(path, size):
+    partial = path.with_suffix(path.suffix + ".partial")
+    have = path.stat().st_size if path.is_file() else partial.stat().st_size if partial.is_file() else 0
+    return max(0, size - have)
+
+
+def disk_preflight(requirements, *, label="Inkling"):
+    by_drive = {}
+    for folder, needed in requirements:
+        if not needed:
+            continue
+        device = folder.stat().st_dev
+        previous = by_drive.get(device, (folder, 0))[1]
+        by_drive[device] = (folder, previous + needed)
+    for folder, needed in by_drive.values():
+        if shutil.disk_usage(folder).free < needed:
+            raise ValueError(f"{label} needs {needed / 1e9:.1f} GB free to finish this setup on {folder}.")
+
+
+def install(state, payload, *, model_folder=None):
     try:
         driver = ctypes.WinDLL("nvcuda.dll", winmode=0x800)
         devices = ctypes.c_int()
@@ -85,53 +115,62 @@ def install(state, payload):
     except OSError as error:
         raise ValueError("Inkling requires an NVIDIA CUDA GPU and compatible driver. Choose Gemma for CPU.") from error
 
-    folder = state / "inkling"
-    folder.mkdir(exist_ok=True)
-    binaries = folder / "bin"
+    runtime = state / "inkling"
+    runtime.mkdir(exist_ok=True)
+    folder = runtime if model_folder is None else model_folder
+    folder.mkdir(parents=True, exist_ok=True)
+    binaries = runtime / "bin"
     model = folder / MODEL["filename"]
     pack = model.with_suffix(".experts.pack")
     receipt = folder / "inputs.json"
-    if not (binaries.is_dir() and receipt.is_file()):
-        downloads = {model: MODEL["bytes"]} if not receipt.is_file() else {}
-        if not binaries.is_dir():
-            downloads.update({folder / name: size for name, size in ARCHIVE_SIZES.items()})
-        needed = 3 * 1024**3 + (800_000_000 if not binaries.is_dir() else 0)
-        # The sidecar is rebuilt atomically; only downloads can resume from a partial file.
-        if not receipt.is_file() and not pack.is_file():
-            needed += MODEL["packed_bytes"]
-        for path, size in downloads.items():
-            partial = path.with_suffix(path.suffix + ".partial")
-            have = path.stat().st_size if path.is_file() else partial.stat().st_size if partial.is_file() else 0
-            needed += max(0, size - have)
-        if shutil.disk_usage(folder).free < needed:
-            raise ValueError(f"Inkling needs {needed / 1e9:.1f} GB free to finish this setup.")
-        if not binaries.is_dir():
-            for name, data in LOCK["cuda_archives"].items():
-                download(f"https://github.com/ggml-org/llama.cpp/releases/download/b12600/{name}",
-                         folder / name, ARCHIVE_SIZES[name], data["sha256"])
-            with tempfile.TemporaryDirectory(dir=folder) as temp:
-                stage = Path(temp) / "bin"
-                stage.mkdir()
-                pins = json.loads((payload / "inkling-native/sha256.json").read_bytes())
-                for name in NATIVE:
-                    shutil.copyfile(payload / "inkling-native" / name, stage / name)
-                    verify(stage / name, pins[name])
-                stage_cuda(folder, stage)
-                # A separate process releases Windows DLL handles before publishing the directory.
-                subprocess.run([sys.executable, str(state / "runtime/previews/inkling/preview.py"),
-                                "smoke", "--bin", str(stage)], check=True)
-                stage.rename(binaries)
-        if not receipt.exists():
-            print("Downloading and verifying Inkling (17.63 GB)...", flush=True)
+    reusable = False
+    if receipt.is_file():
+        try:
+            reusable = registered_inputs(receipt) == {"model": model.resolve(), "pack": pack.resolve()}
+        except (OSError, ValueError, AttributeError, KeyError, TypeError):
+            pass  # A moved library needs a new receipt bound to the files at this path.
+
+    model_space = 0
+    if not reusable:
+        model_space = remaining(model, MODEL["bytes"])
+        # The sidecar is rebuilt atomically; only the download can resume.
+        if not pack.is_file():
+            model_space += MODEL["packed_bytes"]
+        if model_space:
+            model_space += 3 * 1024**3
+    runtime_space = 0
+    if not binaries.is_dir():
+        runtime_space = 800_000_000 + sum(remaining(runtime / name, size) for name, size in ARCHIVE_SIZES.items())
+    disk_preflight(((folder, model_space), (runtime, runtime_space)))
+
+    if not binaries.is_dir():
+        for name, data in LOCK["cuda_archives"].items():
+            download(f"https://github.com/ggml-org/llama.cpp/releases/download/b12600/{name}",
+                     runtime / name, ARCHIVE_SIZES[name], data["sha256"])
+        with tempfile.TemporaryDirectory(dir=runtime) as temp:
+            stage = Path(temp) / "bin"
+            stage.mkdir()
+            pins = json.loads((payload / "inkling-native/sha256.json").read_bytes())
+            for name in NATIVE:
+                shutil.copyfile(payload / "inkling-native" / name, stage / name)
+                verify(stage / name, pins[name])
+            stage_cuda(runtime, stage)
+            # A separate process releases Windows DLL handles before publishing the directory.
+            subprocess.run([sys.executable, str(state / "runtime/previews/inkling/preview.py"),
+                            "smoke", "--bin", str(stage)], check=True)
+            stage.rename(binaries)
+    if not reusable:
+        if not model.exists():
+            print(f"Downloading and verifying Inkling (17.63 GB) to {folder}...", flush=True)
             download(f"https://huggingface.co/{MODEL['repository']}/resolve/{MODEL['revision']}/{model.name}",
                      model, MODEL["bytes"], MODEL["sha256"])
-            if not pack.exists():
-                print("Preparing the verified SSD layout (15.80 GB)...", flush=True)
-                create(model, pack)
-            # Publish the registration only after both files have passed validation.
-            with tempfile.TemporaryDirectory(dir=folder) as temp:
-                staged = Path(temp) / "inputs.json"
-                register(model, pack, staged)
-                staged.rename(receipt)
+        if not pack.exists():
+            print("Preparing the verified SSD layout (15.80 GB)...", flush=True)
+            create(model, pack)
+        # Publish the registration only after both files have passed validation.
+        with tempfile.TemporaryDirectory(dir=folder) as temp:
+            staged = Path(temp) / "inputs.json"
+            register(model, pack, staged)
+            staged.replace(receipt)
     registered_inputs(receipt)
     os.environ.update(BOVARY_INKLING_BIN=str(binaries), BOVARY_INKLING_RECEIPT=str(receipt))

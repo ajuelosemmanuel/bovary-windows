@@ -1,5 +1,7 @@
 """Synthetic lifecycle checks: no model, hardware backend or network."""
 import gc
+from contextlib import redirect_stdout
+import io
 import json
 import os
 from pathlib import Path
@@ -9,11 +11,13 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 import weakref
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'python'))
 from bovary.contract import ExecutionError, Request
+from bovary.launcher_chat import SWITCH_MODEL, chat
 from bovary.local import LocalAdapter, _ACTIVE_ADAPTERS, _dispose_active_adapters
 
 
@@ -70,6 +74,35 @@ class LocalLifecycleTests(unittest.TestCase):
             del adapter
             gc.collect()
             self.assertIsNone(reference())
+
+    def test_launcher_chat_follows_up_and_releases_worker(self):
+        adapter = self.adapter()
+        responses = []
+        execute = adapter.execute
+
+        def record(request, **kwargs):
+            result = execute(request, **kwargs)
+            responses.append((request.prompt, result.timing["warm"], adapter.process))
+            return result
+
+        with patch.object(adapter, "execute", side_effect=record), patch(
+            "builtins.input", side_effect=[
+                "fresh1", "fresh2", "/keep", "remember apricot", "what did I say?",
+                "/new", "new chat", "/unload", "fresh3", "/models",
+            ]
+        ), redirect_stdout(io.StringIO()), adapter:
+            self.assertEqual(chat(adapter, "cpu-only"), SWITCH_MODEL)
+
+        self.assertEqual([warm for _, warm, _ in responses], [False, False, False, True, True, False])
+        self.assertEqual([prompt for prompt, _, _ in responses if not prompt.startswith("Continue")],
+                         ["fresh1", "fresh2", "remember apricot", "new chat", "fresh3"])
+        history = json.loads(responses[3][0].split("\n", 1)[1])
+        self.assertEqual(history["latest_user"], "what did I say?")
+        self.assertEqual(history["previous_turns"][0]["user"], "remember apricot")
+        self.assertIn("reply:remember apricot", history["previous_turns"][0]["assistant"])
+        self.assertIs(responses[2][2], responses[4][2])
+        self.assertIsNot(responses[4][2], responses[5][2])
+        self.assertTrue(all(process.poll() is not None for _, _, process in responses))
 
     def test_abandoned_active_worker_retained_until_exit_cleanup(self):
         adapter = self.adapter()

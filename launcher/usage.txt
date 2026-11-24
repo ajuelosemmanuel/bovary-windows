@@ -5,9 +5,26 @@ is available. First use downloads 426 MB of NVIDIA libraries when needed. Otherw
 uses CPU. Choose C to force CPU, I for Inkling, B for both, or E to use your existing Gemma file.
 Type /models to switch later. Allow 20 GB free for Gemma with CUDA. Inkling requires a
 CUDA 13.5-compatible NVIDIA driver and a local NTFS SSD. Allow 39 GB for Inkling or 54 GB for both.
+
+Choose S to set the model storage folder. New downloads default to Bovary\Models under
+your Local AppData folder. Earlier kit downloads are reused from Bovary Data when no folder
+has been selected. Selecting a folder leaves your files in place. To reuse an existing model
+library, select its folder. Inkling can reuse its existing GGUF and experts pack in that
+folder or its inkling subfolder. New Inkling downloads go in the inkling subfolder.
+You can also use E to verify and open a Gemma file directly. Bovary remembers that registration
+for the current model folder. It checks destination drive space before downloads and verifies
+existing files before reuse. Reconnect a disconnected model drive before opening its library.
+
+By default, each question starts fresh and releases the model after answering. In Gemma,
+type /keep to retain the loaded model and use recent turns for follow-up questions. This
+uses RAM or VRAM between questions. Type /new to clear the conversation and keep the
+model loaded, /unload to release the model and clear the conversation, or /models to
+return to the menu. Inkling runs one question at a time.
+
+Choose T to test this laptop with built-in local prompts. Initial model setup may download
+files. The test itself does not send prompts or results anywhere.
 In a six-task coding pilot, Inkling solved four tasks and Gemma solved three.
 Median answer time was 55 seconds for Inkling and 14 seconds for Gemma on those prompts.
 Both the quality difference and the speed difference depend on the task and hardware.
-The launcher fetches the selected weights. For Inkling it downloads upstream CUDA dependencies
-and builds the expert sidecar on your SSD. It stores downloads in Bovary Data next to the
-launcher. Keep the extracted folder in place for reuse.
+The launcher installs its environment and CUDA dependencies in Bovary Data next to the
+launcher. For Inkling it builds the expert sidecar next to the weights on your SSD.

@@ -88,6 +88,8 @@ include python/bovary/doctor.py
 include python/bovary/evaluation.py
 include python/bovary/evidence.py
 include python/bovary/gui.py
+include python/bovary/laptop_benchmark.py
+include python/bovary/launcher_chat.py
 include python/bovary/local.py
 include python/bovary/mini.py
 include python/bovary/modelproof.py
@@ -128,6 +130,7 @@ include tests/test_evidence_edge_cases.py
 include tests/test_frontends.py
 include tests/test_gui_execution.py
 include tests/test_gui_setup.py
+include tests/test_laptop_benchmark.py
 include tests/test_local_lifecycle.py
 include tests/test_local_worker.py
 include tests/test_measurement.py
@@ -159,6 +162,7 @@ include tools/make_quant_config.py
 include tools/prune_scratch.py
 include tools/quality_eval.py
 include tools/report_results.py
+include tools/stock_laptop_control.py
 include tools/verify_mixed.py
 include tools/verify_model.py
 include tools/windows_metrics.py
