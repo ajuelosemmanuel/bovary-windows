@@ -152,8 +152,12 @@ To rerun, use the same verified Gemma file and receipt for both engines. Extract
 
 ```powershell
 $env:PYTHONPATH = Join-Path (Get-Location) python
-python -m bovary.laptop_benchmark --preset gpu-prefill-2g --json-only
 python tools/stock_laptop_control.py $stockServer $env:BOVARY_MODEL $env:BOVARY_MODEL_MANIFEST stock-private.log
+python -m bovary.laptop_benchmark --preset gpu-prefill-2g --json-only
 ```
 
 Set `$stockServer` to the verified `llama-server.exe` in the extracted directory. The comparison runner needs authenticated loopback access and writes a new private log for the stock configuration details. Share its JSON output since the diagnostic log can contain local paths.
+
+### One-expert lookahead experiment
+
+We tried reading one predicted expert from the SSD before the next layer requested it. In a four-run, interleaved full-edit test on the same laptop, both workers produced the same 69 tokens in every run. Median completion rose from 21.98 seconds to 29.08 seconds. The prototype used 1,220 of 2,001 speculative reads at the expert level and read 9.18% more total expert bytes. Its worker peaked at 639.28 MiB. The Windows kit keeps demand-driven reads.
