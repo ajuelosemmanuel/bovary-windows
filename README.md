@@ -2,9 +2,11 @@
   <img src="docs/images/bovary-banner.png" width="100%" alt="Bovary, with the portfolio pixel-art portrait on a dusty rose background">
 </p>
 
-# How much AI can you run on the laptop you already own?
+# Run a capable AI offline on the Windows laptop you already own
 
-Use Bovary to draft a reply to a tricky email, pull deadlines out of meeting notes, or make sense of unfamiliar code. After the initial download, you can do it all offline on your Windows laptop, and what you type stays on your machine.
+Bovary streams model weights from your SSD to keep system RAM use low. On a laptop with a 6 GB RTX 3060, Gemma 26B completed a Python edit with a median peak of **635 MiB of system RAM** for the inference worker.
+
+After setup, you can draft a reply to a tricky email, pull deadlines out of meeting notes, or ask for a plain-English explanation of unfamiliar code. Your prompts and answers stay on your laptop.
 
 **[Install Bovary for Windows x64](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-x64-setup.exe)** · [Installer checksum](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-x64-setup.exe.sha256) · [Portable ZIP](https://github.com/ajuelosemmanuel/bovary-windows/releases/download/v0.2.0a17/bovary-0.2.0a17-windows-cuda-x64.zip)
 
